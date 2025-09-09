@@ -6,7 +6,7 @@ import '@testing-library/jest-dom/extend-expect';
 import toast from 'react-hot-toast';
 import Register from './Register';
 
-// Mocking axios.post
+// Mocking axios
 jest.mock('axios');
 jest.mock('react-hot-toast');
 
@@ -43,6 +43,8 @@ window.matchMedia = window.matchMedia || function() {
 describe('Register Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock axios.get for useCategory hook
+    axios.get.mockResolvedValue({ data: { category: [] } });
   });
 
   it('should register the user successfully', async () => {
