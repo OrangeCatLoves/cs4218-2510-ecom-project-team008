@@ -48,7 +48,7 @@ describe('Register Component', () => {
   });
 
   it('renders register form', async () => {
-      const { getByText, getByPlaceholderText } = render(
+      const { getByText, getByPlaceholderText, getByRole } = render(
         <MemoryRouter initialEntries={['/register']}>
           <Routes>
             <Route path="/register" element={<Register />} />
@@ -57,12 +57,17 @@ describe('Register Component', () => {
       );
   
       expect(getByText('REGISTER FORM')).toBeInTheDocument();
+
+      // inputs
       expect(getByPlaceholderText('Enter Your Name')).toBeInTheDocument();
       expect(getByPlaceholderText('Enter Your Email')).toBeInTheDocument();
       expect(getByPlaceholderText('Enter Your Password')).toBeInTheDocument();
       expect(getByPlaceholderText('Enter Your Address')).toBeInTheDocument();
       expect(getByPlaceholderText('Enter Your DOB')).toBeInTheDocument();
       expect(getByPlaceholderText('What is Your Favorite sports')).toBeInTheDocument();
+
+      // buttons
+      expect(getByRole('button', { name: 'REGISTER' })).toBeInTheDocument();
   })
 
   it('inputs should be initially empty', () => {
