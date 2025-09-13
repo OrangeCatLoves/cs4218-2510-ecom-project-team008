@@ -1,3 +1,4 @@
+import userModel from "../models/userModel.js";
 import { registerController } from "./authController.js";
 
 jest.mock("../models/userModel.js");
@@ -100,4 +101,21 @@ describe('registerController', () => {
     // Assert
     expect(res.send).toHaveBeenCalledWith({ error: "Answer is Required" });
   });
+
+  test('should return registration successs when user with given email is found', async () => {
+    // Arrange
+    const req = mockRequest;
+    userModel.findOne = jest.fn().mockImplementation(async ({ email }) => mockRequest);
+
+    // Act
+    await registerController(req, res);
+
+    // Assert
+    expect(userModel.findOne).toHaveBeenCalledWith({ 
+      email: mockEmail
+    });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith({ success: false, message: 'Already Register please login' })
+  });
 });
+
