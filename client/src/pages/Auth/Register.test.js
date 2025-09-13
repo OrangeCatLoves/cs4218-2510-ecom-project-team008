@@ -72,6 +72,20 @@ describe('Register Component', () => {
     expect(toast.success).toHaveBeenCalledWith('Register Successfully, please login');
   });
 
+  it('should not register user if required form fields are empty', async () => {
+    const { getByText } = render(
+      <MemoryRouter initialEntries={['/register']}>
+        <Routes>
+          <Route path="/register" element={<Register />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(getByText('REGISTER'));
+
+    await waitFor(() => expect(axios.post).not.toHaveBeenCalled());
+  });
+
   it('should display error message on failed registration', async () => {
     axios.post.mockRejectedValueOnce({ message: 'User already exists' });
 
