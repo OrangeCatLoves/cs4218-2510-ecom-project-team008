@@ -1,6 +1,6 @@
 import JWT from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import { registerController, loginController, forgotPasswordController } from "./authController.js";
+import { registerController, loginController, forgotPasswordController, testController } from "./authController.js";
 import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 
 jest.mock("../models/userModel.js");
@@ -142,6 +142,8 @@ describe('registerController', () => {
     });
     expect(res.send.mock.calls[0][0].error.message).toBe("Internal server error");
     expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+
+    consoleSpy.mockRestore();
   });
 });
 
@@ -252,6 +254,8 @@ describe('loginController', () => {
     });
     expect(res.send.mock.calls[0][0].error.message).toBe("Internal server error");
     expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+
+    consoleSpy.mockRestore();
   });
 });
 
@@ -339,5 +343,47 @@ describe('forgotPasswordController', () => {
       error,
     });
     expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+
+    consoleSpy.mockRestore();
   });
 });
+
+describe('testController', () => {
+  let req, res;
+
+  beforeEach(() => {
+    res = {
+      send: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should respond with protected routes', async () => {
+    // Arrange
+    const req = mockRequest;
+
+    // Act
+    await testController(req, res);
+
+    // Assert
+    expect(res.send).toHaveBeenCalledWith('Protected Routes');
+  });
+
+  it('should log error if something goes wrong', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    const brokenRes = {
+      send: null, // triggers the exception
+    };
+    const req = {};
+    expect(() => testController(req, brokenRes)).toThrow();
+
+    expect(consoleSpy).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+})
