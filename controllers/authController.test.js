@@ -76,7 +76,7 @@ describe('registerController', () => {
     await registerController(req, res);
 
     // Assert
-    expect(res.send).toHaveBeenCalledWith({ error: "Phone is Required" });
+    expect(res.send).toHaveBeenCalledWith({ error: "Phone number is Required" });
   });
 
   test('should return email is required error when there is no attribute address in request body', async () => {
