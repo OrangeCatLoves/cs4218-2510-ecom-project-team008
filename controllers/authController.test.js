@@ -1,6 +1,6 @@
 import JWT from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import { registerController, loginController } from "./authController.js";
+import { registerController, loginController, forgotPasswordController } from "./authController.js";
 import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 
 jest.mock("../models/userModel.js");
@@ -250,6 +250,93 @@ describe('loginController', () => {
       error: expect.any(Error),
     });
     expect(res.send.mock.calls[0][0].error.message).toBe("Internal server error");
+    expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+  });
+});
+
+describe('forgotPasswordController', () => {
+  let res;
+
+  beforeEach(() => {
+    res = {
+      send: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+    const invalidInputs = [
+    { field: 'email', value: '', expectedMessage: 'Email is required' },
+    { field: 'answer', value: '', expectedMessage: 'Answer is required' },
+    { field: 'newPassword', value: '', expectedMessage: 'New Password is required' },
+  ]
+
+  test.each(invalidInputs)(
+    'should return $field is required error when there is no attribute $field in request body',
+    async ({ field, value, expectedMessage }) => {
+      // Arrange
+      const req = { body: { ...mockRequest.body, [field]: value } };
+      
+      // Act
+      await forgotPasswordController(req, res);
+
+      // Assert
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.send).toHaveBeenCalledWith({ message: expectedMessage });
+    }
+  );
+
+  test('should return 404 when unable to find user with given email and answer', async () => {
+    // Arrange
+    const req = mockRequest;
+    userModel.findOne.mockResolvedValue(null);
+
+    // Act
+    await forgotPasswordController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).toHaveBeenCalledWith({ success: false, message: 'Wrong Email Or Answer' });
+  });
+
+  test('should reset password successfully when user is found', async () => {
+    // Arrange
+    const req = mockRequest;
+    const mockUser = { _id: "mock_id" };
+    userModel.findOne.mockResolvedValue(mockUser);
+    hashPassword.mockResolvedValue("hashedPassword");
+    userModel.findByIdAndUpdate.mockResolvedValue({});
+
+    // Act
+    await forgotPasswordController(req, res);
+
+    // Assert
+    expect(hashPassword).toHaveBeenCalledWith(req.body.newPassword);
+    expect(userModel.findByIdAndUpdate).toHaveBeenCalledWith(mockUser._id, { password: "hashedPassword" });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith({ success: true, message: "Password Reset Successfully" });
+  });
+
+  test('should return 500 when an error is thrown', async () => {
+    // Arrange
+    const req = mockRequest;
+    const error = new Error("Internal Server Error");
+    userModel.findOne.mockRejectedValue(error);
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Act
+    await forgotPasswordController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.send).toHaveBeenCalledWith({
+      success: false,
+      message: "Something went wrong",
+      error,
+    });
     expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
   });
 });
