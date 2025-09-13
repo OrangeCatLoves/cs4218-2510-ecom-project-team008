@@ -57,6 +57,7 @@ describe('registerController', () => {
       await registerController(req, res);
 
       // Assert
+      expect(res.status).toHaveBeenCalledWith(400);
       expect(res.send).toHaveBeenCalledWith({ message: expectedMessage });
     }
   );
