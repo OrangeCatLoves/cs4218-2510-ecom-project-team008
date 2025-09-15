@@ -22,7 +22,15 @@ jest.mock('../../context/search', () => ({
     useSearch: jest.fn(() => [{ keyword: '' }, jest.fn()]) // Mock useSearch hook to return null state and a mock function
   }));
 
-jest.mock("../../hooks/useCategory", () => jest.fn(() => []))
+const mockedNavigate = jest.fn();
+
+jest.mock('react-router-dom', () => {
+  const originalModule = jest.requireActual('react-router-dom');
+  return {
+    ...originalModule,
+    useNavigate: () => mockedNavigate,
+  };
+})
 
   Object.defineProperty(window, 'localStorage', {
     value: {
@@ -44,6 +52,8 @@ window.matchMedia = window.matchMedia || function() {
 describe('Login Component', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        // Mock axios.get for useCategory hook
+        axios.get.mockResolvedValue({ data: { category: [] } });
     });
 
     it('renders login form', () => {
@@ -56,8 +66,14 @@ describe('Login Component', () => {
         );
     
         expect(getByText('LOGIN FORM')).toBeInTheDocument();
+
+        // inputs
         expect(getByPlaceholderText('Enter Your Email')).toBeInTheDocument();
         expect(getByPlaceholderText('Enter Your Password')).toBeInTheDocument();
+
+        // buttons
+        expect(getByRole('button', { name: 'LOGIN' })).toBeInTheDocument();
+        expect(getByRole('button', { name: 'Forgot Password' })).toBeInTheDocument();
       });
       it('inputs should be initially empty', () => {
         const { getByText, getByPlaceholderText } = render(
@@ -136,5 +152,19 @@ describe('Login Component', () => {
 
         await waitFor(() => expect(axios.post).toHaveBeenCalled());
         expect(toast.error).toHaveBeenCalledWith('Something went wrong');
+    });
+
+    it('should navigate to forgot password page when button is clicked', async () => {
+        const { getByRole } = render(
+            <MemoryRouter initialEntries={['/login']}>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        fireEvent.click(getByRole('button', { name: 'Forgot Password' }));
+
+        expect(mockedNavigate).toHaveBeenCalledWith('/forgot-password');
     });
 });
