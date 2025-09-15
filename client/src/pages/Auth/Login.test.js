@@ -57,7 +57,7 @@ describe('Login Component', () => {
     });
 
     it('renders login form', () => {
-        const { getByText, getByPlaceholderText } = render(
+        const { getByText, getByPlaceholderText, getByRole } = render(
           <MemoryRouter initialEntries={['/login']}>
             <Routes>
               <Route path="/login" element={<Login />} />
