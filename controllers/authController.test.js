@@ -1,7 +1,9 @@
 import JWT from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import { registerController, loginController, forgotPasswordController, testController } from "./authController.js";
+import { registerController, loginController, forgotPasswordController, testController,
+  updateProfileController } from "./authController.js";
 import { comparePassword, hashPassword } from "../helpers/authHelper.js";
+import {expect} from "@playwright/test";
 
 jest.mock("../models/userModel.js");
 jest.mock("./../helpers/authHelper.js");
@@ -387,3 +389,166 @@ describe('testController', () => {
     consoleSpy.mockRestore();
   });
 })
+
+describe('updateProfileController', () => {
+  let res;
+
+  beforeEach(() => {
+    res = {
+      send: jest.fn(),
+      json: jest.fn(),
+      status: jest.fn().mockReturnThis(),
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const validUserId = 1
+  const invalidUserId = 2
+
+  const mockProfileUpdateRequest = {
+    user: {
+      _id: validUserId
+    },
+    body: {
+      name: "Updated User",
+      password:"Updated Password",
+      address:"Updated Address",
+      phone: "Updated Phone"
+    }
+  }
+
+  const mockUser = {
+    _id: validUserId,
+    name: "Mock Name",
+    email:"Mock Email",
+    password:"123456",
+    address:"Mock Address",
+    phone: "Mock Phone"
+  }
+
+  test('should return 200 when no user is found but input value is not empty', async() => {
+    // Arrange
+    const req = {
+      ...mockProfileUpdateRequest,
+      user: {_id: invalidUserId}
+    }
+    userModel.findById.mockResolvedValueOnce(null)
+    userModel.findByIdAndUpdate.mockResolvedValueOnce(null)
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith({
+      success: true,
+      message: "Profile Updated Successfully",
+      updatedUser: null
+    })
+  })
+
+  test('should return 400 when no user is found and input value is empty', async() => {
+    // Arrange
+    const req = {
+      user: {
+        _id: invalidUserId
+      },
+      body: {}
+    };
+    userModel.findById.mockResolvedValueOnce(null);
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      success: false,
+      message: "Error While Update profile",
+      error: expect.any(TypeError)
+    })
+  })
+
+  test('should return 400 when new password of less than length 6 is given', async () => {
+    // Arrange
+    const req = {
+      ...mockProfileUpdateRequest,
+      body: {
+        ...mockProfileUpdateRequest.body,
+        password: "12345"
+      }
+    }
+    userModel.findById.mockResolvedValueOnce(mockUser)
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.json).toHaveBeenCalledWith({ error: "Passsword is required and 6 character long" })
+  });
+
+  const validUpdateValues = [
+    {field: "name", value: "Updated User"},
+    {field: "password", value: "654321"},
+    {field: "address", value: "Updated Address"},
+    {field: "phone", value: "Updated Phone"},
+  ]
+  test.each(validUpdateValues)(
+      "should return 200 and update user profile successfully if given valid value", async ({field, value}) => {
+        // Arrange
+        const req = {
+          user: {_id: validUserId},
+          body: {[field]: value}
+        }
+        userModel.findById.mockResolvedValueOnce(mockUser)
+        const updatedUser = {
+          ...mockUser,
+          [field]: value
+        }
+        userModel.findByIdAndUpdate.mockResolvedValueOnce(updatedUser)
+
+        // Act
+        await updateProfileController(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.send).toHaveBeenCalledWith({
+          success: true,
+          message: "Profile Updated Successfully",
+          updatedUser
+        })
+      }
+  )
+
+  const emptyUpdateValues = [
+    {field: "name", value: ""},
+    {field: "password", value: ""},
+    {field: "address", value: ""},
+    {field: "phone", value: ""},
+  ]
+  test.each(emptyUpdateValues)(
+      "should return 200 and preserve the old value if given empty or undefined value", async ({field, value}) => {
+        // Arrange
+        const req = {
+          user: {_id: validUserId},
+          body: {[field]: value}
+        }
+        userModel.findById.mockResolvedValueOnce(mockUser)
+        userModel.findByIdAndUpdate.mockResolvedValue(mockUser)
+
+        // Act
+        await updateProfileController(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.send).toHaveBeenCalledWith({
+          success: true,
+          message: "Profile Updated Successfully",
+          updatedUser: mockUser
+        })
+      }
+  )
+});
