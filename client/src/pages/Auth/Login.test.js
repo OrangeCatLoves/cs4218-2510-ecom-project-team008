@@ -6,7 +6,7 @@ import '@testing-library/jest-dom/extend-expect';
 import toast from 'react-hot-toast';
 import Login from './Login';
 
-// Mocking axios
+// Mocking axios.post
 jest.mock('axios');
 jest.mock('react-hot-toast');
 
@@ -21,6 +21,8 @@ jest.mock('../../context/auth', () => ({
 jest.mock('../../context/search', () => ({
     useSearch: jest.fn(() => [{ keyword: '' }, jest.fn()]) // Mock useSearch hook to return null state and a mock function
   }));
+
+jest.mock("../../hooks/useCategory", () => jest.fn(() => []));
 
 const mockedNavigate = jest.fn();
 
@@ -162,7 +164,7 @@ describe('Login Component', () => {
                 </Routes>
             </MemoryRouter>
         );
-        
+
         fireEvent.click(getByRole('button', { name: 'Forgot Password' }));
 
         expect(mockedNavigate).toHaveBeenCalledWith('/forgot-password');

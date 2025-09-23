@@ -6,4 +6,4 @@ node_modules
 .claude
 docs
 .env
-
+.idea/
