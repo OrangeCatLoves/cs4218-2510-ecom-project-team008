@@ -46,6 +46,7 @@ describe('Orders Component', () => {
 
         // Assert
         const { getByText } = screen;
+
         expect(getByText(/All Orders/i)).toBeInTheDocument();
     });
 
@@ -69,6 +70,7 @@ describe('Orders Component', () => {
         await waitFor(() => {
             const { queryAllByRole } = screen;
             const orders = screen.queryAllByRole('table');
+
             expect(orders).toHaveLength(0);
         })
     });
@@ -93,11 +95,12 @@ describe('Orders Component', () => {
         await waitFor(() => {
             const { queryAllByRole } = screen;
             const orders = queryAllByRole('table');
+
             expect(orders).toHaveLength(0);
         })
     })
 
-    it("should render order list with one order when only one order is found ", async () => {
+    it("should render order list with one order when only one order is found", async () => {
         // Arrange
         const mockProduct = {
             _id: 1,
@@ -110,11 +113,11 @@ describe('Orders Component', () => {
             _id: 1,
             products: [mockProduct],
             payment: {
-                message: "",
+                message: "Payment message for testing",
                 success: false
             },
             buyer: {
-                name: ""
+                name: "Tester"
             },
             status: "Not Process",
             createdAt: new Date("2025-09-23"),
@@ -136,9 +139,18 @@ describe('Orders Component', () => {
 
         // Assert
         await waitFor(() => {
-            const { queryAllByRole } = screen;
-            const orders = queryAllByRole('table')
+            const { queryAllByRole, getByTestId } = screen;
+            const orders = queryAllByRole('table');
+
             expect(orders).toHaveLength(1);
-        })
+
+            expect(getByTestId("order-status")).toHaveTextContent(/Not Process/i) // Order Status
+            expect(getByTestId("order-buyer")).toHaveTextContent(/Tester/i); // Order Buyer Name
+            expect(getByTestId("order-payment-success")).toHaveTextContent(/Failed/i); // Order Payment Success
+            expect(getByTestId("order-products-count")).toHaveTextContent(/1/); //Order Product Count
+            expect(getByTestId("product-name")).toHaveTextContent(/Book/i); // Product Name
+            expect(getByTestId("product-description")).toHaveTextContent(new RegExp(`${mockProduct.description.substring(0, 30)}`, "i")); // Product Description
+            expect(getByTestId("product-price")).toHaveTextContent(/19.99/); // Product Price
+        });
     })
 })
