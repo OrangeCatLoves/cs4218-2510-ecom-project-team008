@@ -1,7 +1,9 @@
 import JWT from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import { registerController, loginController, forgotPasswordController, testController,
-  updateProfileController, getOrdersController } from "./authController.js";
+import {
+  registerController, loginController, forgotPasswordController, testController,
+  updateProfileController, getOrdersController, getAllOrdersController
+} from "./authController.js";
 import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 import {expect} from "@playwright/test";
 import orderModel from "../models/orderModel";
@@ -585,7 +587,7 @@ describe('getOrdersController', () => {
     jest.clearAllMocks();
   });
 
-  test('should return json containing the found orders', async() => {
+  test('should return the orders if found', async() => {
     // Arrange
     const req = { user: { _id: 1 } };
     const mockPopulatedOrders = [{
@@ -593,13 +595,10 @@ describe('getOrdersController', () => {
       products: [mockProduct],
       buyer: "Mock Name",
     }];
-
-    const populateBuyer = jest.fn().mockReturnValue(mockPopulatedOrders);
-    const populateProducts = jest.fn().mockReturnValue({
-      populate: populateBuyer
-    });
-    orderModel.find.mockReturnValue({
-      populate: populateProducts
+    orderModel.find.mockReturnValueOnce({
+      populate: jest.fn().mockReturnValueOnce({
+        populate: jest.fn().mockReturnValueOnce(mockPopulatedOrders)
+      })
     });
 
     // Act
@@ -612,7 +611,14 @@ describe('getOrdersController', () => {
   test('should return 500 when error is thrown', async() => {
     // Arrange
     const req = {user: {_id: 1}};
-    orderModel.find.mockReturnValue(null);
+    const error = new Error("An Error Occur")
+    orderModel.find.mockReturnValueOnce({
+      populate: jest.fn().mockReturnValueOnce({
+        populate: jest.fn(() => {
+          throw error;
+        })
+      })
+    });
 
     // Act
     await getOrdersController(req, res);
@@ -622,7 +628,112 @@ describe('getOrdersController', () => {
     expect(res.send).toHaveBeenCalledWith({
       success: false,
       message: "Error While Getting Orders",
-      error: expect.any(Error),
+      error,
     });
   });
 });
+
+describe('getAllOrdersController', () => {
+  let res;
+  beforeEach(() => {
+    res = {
+      json: jest.fn(),
+      send: jest.fn(),
+      status: jest.fn().mockReturnThis()
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const mockProduct1 = {
+    name: "Mock Name",
+    slug: "Mock Slug",
+    description: "Mock Description",
+    price: 19.99,
+    category: "Mock Category",
+    quantity: 1,
+    shipping: true,
+  };
+  const mockProduct2 = {
+    name: "Mock Name2",
+    slug: "Mock Slug2",
+    description: "Mock Description2",
+    price: 29.99,
+    category: "Mock Category2",
+    quantity: 2,
+    shipping: false,
+  };
+  const mockProduct3 = {
+    name: "Mock Name3",
+    slug: "Mock Slug3",
+    description: "Mock Description3",
+    price: 39.99,
+    category: "Mock Category3",
+    quantity: 3,
+    shipping: true,
+  };
+  const mockOrder1 = {
+    products: [mockProduct1],
+    payment: {success: true, message: "Mock Message"},
+    buyer: {_id: 1},
+    status: "Not Process"
+  };
+  const mockOrder2 = {
+    products: [mockProduct1, mockProduct2],
+    payment: {success: false, message: "Mock Message2"},
+    buyer: {_id: 2},
+    status: "Processing"
+  };
+  const mockOrder3 = {
+    products: [mockProduct1, mockProduct2, mockProduct3],
+    payment: {success: true, message: "Mock Message3"},
+    buyer: {_id: 3},
+    status: "Shipped"
+  };
+
+  test('should return all orders when found', async() => {
+    // Arrange
+    const req = {};
+    const mockResults = [mockOrder1, mockOrder2, mockOrder3];
+
+    orderModel.find.mockReturnValueOnce({
+      populate: jest.fn().mockReturnValueOnce({
+        populate: jest.fn().mockReturnValueOnce({
+          sort: jest.fn().mockResolvedValueOnce(mockResults)
+        })
+      })
+    })
+
+    // Act
+    await getAllOrdersController(req, res);
+
+    // Assert
+    expect(res.json).toHaveBeenCalledWith(mockResults);
+  })
+
+  test('should return 500 when error is thrown', async() => {
+    // Arrange
+    const req = {};
+    const error = new Error("An error occurred...")
+    orderModel.find.mockReturnValueOnce({
+      populate: jest.fn().mockReturnValueOnce({
+        populate: jest.fn().mockReturnValueOnce({
+          sort: jest.fn().mockRejectedValueOnce(error)
+        })
+      })
+    });
+
+    // Act
+    await getAllOrdersController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.send).toHaveBeenCalledWith({
+      success: false,
+      message: "Error While Getting Orders",
+      error,
+    });
+  });
+})
