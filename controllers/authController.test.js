@@ -2,7 +2,8 @@ import JWT from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 import {
   registerController, loginController, forgotPasswordController, testController,
-  updateProfileController, getOrdersController, getAllOrdersController
+  updateProfileController, getOrdersController, getAllOrdersController,
+    orderStatusController
 } from "./authController.js";
 import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 import {expect} from "@playwright/test";
@@ -736,4 +737,98 @@ describe('getAllOrdersController', () => {
       error,
     });
   });
-})
+
+  describe('orderStatusController', () => {
+    let res;
+    let mockProduct, mockOrder;
+    beforeEach(() => {
+      res = {
+        json: jest.fn(),
+        send: jest.fn(),
+        status: jest.fn().mockReturnThis()
+      };
+
+      mockProduct = {
+        name: "Mock Name",
+        slug: "Mock Slug",
+        description: "Mock Description",
+        price: 19.99,
+        category: "Mock Category",
+        quantity: 1,
+        shipping: true,
+      };
+
+      mockOrder = {
+        _id: 1,
+        products: [1],
+        payment: {success: true, message: "Mock Message"},
+        buyer: {_id: 1},
+        status: "Not Process"
+      };
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    const statuses = ["Not Process", "Processing", "Shipped", "delivered", "cancel"]
+    test.each(statuses)(
+        'should update order to each valid state properly', async (status) => {
+          // Arrange
+          const req = {
+            params: {orderId: mockOrder._id},
+            body: {status: status}
+          }
+          const updatedOrder = {
+            ...mockOrder,
+            status: status
+          };
+          orderModel.findByIdAndUpdate.mockResolvedValueOnce(updatedOrder);
+
+          // Act
+          await orderStatusController(req, res);
+
+          // Assert
+          expect(res.json).toHaveBeenCalledWith(updatedOrder);
+    });
+
+    test.each(statuses)(
+        'should return null if no order with given id is found', async(status) => {
+          // Arrange
+          const req = {
+            params: {orderId: "Invalid ID"},
+            body: {status: status}
+          };
+          orderModel.findByIdAndUpdate.mockResolvedValueOnce(null);
+
+          // Act
+          await orderStatusController(req, res);
+
+          // Assert
+          expect(res.json).toHaveBeenCalledWith(null);
+    });
+
+    test.each(statuses)(
+        'should return 500 with error message when error occurs', async(status) => {
+          // Arrange
+          const req = {
+            params: {orderId: mockOrder._id},
+            body: {status: status}
+          };
+          const error = new Error("An error occurred...");
+          orderModel.findByIdAndUpdate.mockRejectedValueOnce(error);
+
+          // Act
+          await orderStatusController(req, res);
+
+          // Assert
+          expect(res.status).toHaveBeenCalledWith(500);
+          expect(res.send).toHaveBeenCalledWith({
+            success: false,
+            message: "Error While Updating Order",
+            error,
+          });
+        }
+    )
+  });
+});
