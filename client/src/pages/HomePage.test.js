@@ -635,7 +635,9 @@ describe("HomePage Component", () => {
     axios.post
       .mockResolvedValueOnce({
         data: { products: initialProducts }
-      })
+      });
+
+    axios.get
       .mockResolvedValueOnce({
         data: { products: additionalProducts }
       });
@@ -670,11 +672,7 @@ describe("HomePage Component", () => {
 
     // Assert
     await waitFor(() => {
-      expect(axios.post).toHaveBeenLastCalledWith("/api/v1/product/product-filters", {
-        checked: ["1"],
-        radio: [],
-        page: 2,
-      });
+      expect(axios.get).toHaveBeenLastCalledWith("/api/v1/product/product-filters?categories=1&page=2");
     });
   });
 });

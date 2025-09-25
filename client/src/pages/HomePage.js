@@ -43,6 +43,10 @@ const HomePage = () => {
       try {
         setLoading(true);
         if (checked.length || radio.length) {
+          // TODO: Refactor to GET request with query parameters
+          // Should be: GET /api/v1/product/product-filters?categories=id1,id2&minPrice=0&maxPrice=100
+          // Also update: controllers/productController.js productFiltersController to read req.query
+          // Also update: routes/productRoutes.js to change POST to GET
           const { data } = await axios.post("/api/v1/product/product-filters", {
             checked,
             radio,
@@ -86,11 +90,14 @@ const HomePage = () => {
       setLoading(true);
       const nextPage = page + 1;
       if (checked.length || radio.length) {
-        const { data } = await axios.post("/api/v1/product/product-filters", {
-          checked,
-          radio,
-          page: nextPage,
-        });
+        const params = new URLSearchParams();
+        if (checked.length) params.append('categories', checked.join(','));
+        if (radio.length) {
+          params.append('minPrice', radio[0]);
+          params.append('maxPrice', radio[1]);
+        }
+        params.append('page', nextPage);
+        const { data } = await axios.get(`/api/v1/product/product-filters?${params.toString()}`);
         setProducts([...products, ...data?.products]);
       } else {
         const { data } = await axios.get(`/api/v1/product/product-list/${nextPage}`);
