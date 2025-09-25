@@ -36,20 +36,41 @@ const HomePage = () => {
     getAllCategory();
     getTotal();
   }, []);
-  //get products
-  const getAllProducts = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
-      setLoading(false);
-      setProducts(data.products);
-    } catch (error) {
-      setLoading(false);
-      console.log(error);
-    }
-  };
 
-  //getTOtal COunt
+  useEffect(() => {
+    let isValid = true;
+    const getAllProducts = async () => {
+      try {
+        setLoading(true);
+        if (checked.length || radio.length) {
+          const { data } = await axios.post("/api/v1/product/product-filters", {
+            checked,
+            radio,
+          });
+          if (!isValid) return;
+          setProducts(data?.products);
+        } else {
+          const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
+          if (!isValid) return;
+          setProducts(data.products);
+        }
+        setLoading(false);
+      } catch (error) {
+        if (isValid) {
+          setLoading(false);
+          console.log(error);
+        }
+      }
+    };
+
+    getAllProducts();
+
+    return () => {
+      isValid = false;
+    };
+  }, [checked, radio, page]);
+
+  // Get total count
   const getTotal = async () => {
     try {
       const { data } = await axios.get("/api/v1/product/product-count");
@@ -59,17 +80,24 @@ const HomePage = () => {
     }
   };
 
-  useEffect(() => {
-    if (page === 1) return;
-    loadMore();
-  }, [page]);
   //load more
   const loadMore = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
+      const nextPage = page + 1;
+      if (checked.length || radio.length) {
+        const { data } = await axios.post("/api/v1/product/product-filters", {
+          checked,
+          radio,
+          page: nextPage,
+        });
+        setProducts([...products, ...data?.products]);
+      } else {
+        const { data } = await axios.get(`/api/v1/product/product-list/${nextPage}`);
+        setProducts([...products, ...data?.products]);
+      }
+      setPage(nextPage);
       setLoading(false);
-      setProducts([...products, ...data?.products]);
     } catch (error) {
       console.log(error);
       setLoading(false);
@@ -86,26 +114,7 @@ const HomePage = () => {
     }
     setChecked(all);
   };
-  useEffect(() => {
-    if (!checked.length || !radio.length) getAllProducts();
-  }, [checked.length, radio.length]);
 
-  useEffect(() => {
-    if (checked.length || radio.length) filterProduct();
-  }, [checked, radio]);
-
-  //get filterd product
-  const filterProduct = async () => {
-    try {
-      const { data } = await axios.post("/api/v1/product/product-filters", {
-        checked,
-        radio,
-      });
-      setProducts(data?.products);
-    } catch (error) {
-      console.log(error);
-    }
-  };
   return (
     <Layout title={"ALL Products - Best offers "}>
       {/* banner image */}
@@ -203,7 +212,7 @@ const HomePage = () => {
                 className="btn loadmore"
                 onClick={(e) => {
                   e.preventDefault();
-                  setPage(page + 1);
+                  loadMore();
                 }}
               >
                 {loading ? (
