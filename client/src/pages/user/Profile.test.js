@@ -1,5 +1,5 @@
 import React from 'react';
-import {fireEvent, getByPlaceholderText, render, waitFor} from '@testing-library/react';
+import {fireEvent, getByPlaceholderText, getByText, render, waitFor} from '@testing-library/react';
 import "@testing-library/jest-dom/extend-expect";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -221,6 +221,7 @@ describe('Update Profile Form', () => {
     const updateFields = [
         {field: "name", value: "Updated Name"},
         {field: "email", value: "Updated Email"},
+        {field: "password", value: "Updated Password"},
         {field: "phone", value: "Updated Phone"},
         {field: "address", value: "Updated Address"},
     ];
@@ -278,5 +279,80 @@ describe('Update Profile Form', () => {
             expect(stringifySpy).toHaveBeenCalledWith(newAuth);
             expect(localStorage.setItem).toHaveBeenCalledWith("auth", newAuth);
             expect(toast.success).toHaveBeenCalledWith("Profile Updated Successfully");
+    });
+
+    const fields = ["name", "email", "password", "phone", "address"];
+    test.each(fields)(
+        'should output success but preserve old profile data if updated value is empty', async (field) => {
+            // Arrange
+            const updatedUser = {
+                ...mockProfile,
+                [field]: ""
+            };
+            const auth = { user: mockProfile };
+            const setAuth = jest.fn();
+
+            useAuth.mockReturnValue([auth, setAuth]);
+            localStorage.getItem.mockReturnValue(auth);
+
+            const parseSpy = jest.spyOn(JSON, 'parse');
+            parseSpy.mockImplementation(() => auth);
+            const stringifySpy = jest.spyOn(JSON, 'stringify');
+            stringifySpy.mockImplementation(() => auth);
+
+            axios.put.mockReturnValue({
+                data: {
+                    success: true,
+                    message: "Profile Updated Successfully",
+                    updatedUser: mockProfile
+                }
+            });
+
+            // Act
+            const { getByText, getByPlaceholderText } = render(
+                <MemoryRouter>
+                    <Profile/>
+                </MemoryRouter>
+            );
+            fireEvent.change(getByPlaceholderText(new RegExp(`Enter Your ${field}`, "i")), {
+                target: {
+                    value: ""
+                }
+            });
+            fireEvent.click(getByText(/UPDATE/i));
+
+            // Assert
+            await waitFor(() => {
+               expect(axios.put).toHaveBeenCalledWith("/api/v1/auth/profile", updatedUser);
+            });
+            expect(setAuth).toHaveBeenCalledWith(auth);
+            expect(localStorage.getItem).toHaveBeenCalledWith("auth");
+            expect(parseSpy).toHaveBeenCalledWith(auth);
+            expect(stringifySpy).toHaveBeenCalledWith(auth);
+            expect(localStorage.setItem).toHaveBeenCalledWith("auth", auth);
+            expect(toast.success).toHaveBeenCalledWith("Profile Updated Successfully");
+        }
+    );
+
+    it('should log error and invoke toast.error if error is thrown during submission', async() => {
+        // Arrange
+        const error = new Error("Error 4 occurred...");
+        const consoleSpy = jest.spyOn(console, 'log');
+        consoleSpy.mockImplementation(() => {});
+        axios.put.mockRejectedValue(error);
+
+        // Act
+        const { getByText } = render(
+            <MemoryRouter>
+            <Profile/>
+            </MemoryRouter>
+        );
+        fireEvent.click(getByText(/UPDATE/i));
+
+        // Assert
+        await waitFor(() => {
+            expect(consoleSpy).toHaveBeenCalledWith(error);
+            expect(toast.error).toHaveBeenCalledWith("Something went wrong");
+        });
     });
 });
