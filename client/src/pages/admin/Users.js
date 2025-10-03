@@ -30,11 +30,16 @@ const Users = () => {
           </div>
           <div className="col-md-9">
             <h1>All Users</h1>
-            <ol>
+            <div className="grid grid-cols-6 gap-2">
               {users.map((user) => (
-                <li key={user._id}>{user.name}</li>
+                <div key={user._id}>
+                  <h2>{`${user.name}${user.role === 1 ? "(Admin)" : ""}`}</h2>
+                  <p>{`Email: ${user.email}`}</p>
+                  <p>{`Phone: ${user.phone}`}</p>
+                  <p>{`Address: ${user.address}`}</p>
+                </div>
               ))}
-            </ol>
+            </div>
           </div>
         </div>
       </div>
