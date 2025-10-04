@@ -19,10 +19,10 @@ jest.mock("react-hot-toast", () => ({
   error: jest.fn(),
 }));
 
-// renders children when visible === true, exposes a close button that triggers onCancel
+// renders children when open === true, exposes a close button that triggers onCancel
 jest.mock("antd", () => ({
-  Modal: ({ visible, children, onCancel }) =>
-    visible ? (
+  Modal: ({ open, children, onCancel }) =>
+    open ? (
       <div data-testid="modal">
         <button data-testid="modal-close" onClick={onCancel}>
           Close
@@ -106,12 +106,13 @@ describe("CreateCategory", () => {
     const input = await screen.findByPlaceholderText(/enter new category/i);
 
     // Act
-    await userEvent.clear(input);
     await userEvent.type(input, "Gadgets");
     await userEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     // Assert
-    expect(axios.post).toHaveBeenCalledWith(api.create, { name: "Gadgets" });
+    await waitFor(() =>
+      expect(axios.post).toHaveBeenCalledWith(api.create, { name: "Gadgets" })
+    );
     expect(toast.success).toHaveBeenCalledWith("Gadgets is created");
     await waitFor(() => expect(findRowByName("Gadgets")).toBeTruthy());
   });
@@ -131,7 +132,9 @@ describe("CreateCategory", () => {
     await userEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     // Assert
-    expect(toast.error).toHaveBeenCalledWith("duplicate");
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("duplicate")
+    );
   });
 
   test("create: POST throws -> shows specific catch toast", async () => {
@@ -147,9 +150,43 @@ describe("CreateCategory", () => {
     await userEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     // Assert
-    expect(toast.error).toHaveBeenCalledWith(
-      "something went wrong in input form"
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Something went wrong in input form"
+      )
     );
+  });
+
+  test("create: empty name shows validation error", async () => {
+    // Arrange
+    axios.get.mockResolvedValueOnce({ data: { success: true, category: [] } });
+
+    render(<CreateCategory />);
+    const input = await screen.findByPlaceholderText(/enter new category/i);
+
+    // Act
+    await userEvent.clear(input);
+    await userEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    // Assert
+    expect(toast.error).toHaveBeenCalledWith("Category name is required");
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  test("create: whitespace-only name shows validation error", async () => {
+    // Arrange
+    axios.get.mockResolvedValueOnce({ data: { success: true, category: [] } });
+
+    render(<CreateCategory />);
+    const input = await screen.findByPlaceholderText(/enter new category/i);
+
+    // Act
+    await userEvent.type(input, "   ");
+    await userEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    // Assert
+    expect(toast.error).toHaveBeenCalledWith("Category name is required");
+    expect(axios.post).not.toHaveBeenCalled();
   });
 
   test("update: clicking Edit opens modal with prefilled name; success path resets & refetches", async () => {
@@ -181,8 +218,12 @@ describe("CreateCategory", () => {
     );
 
     // Assert
-    expect(axios.put).toHaveBeenCalledWith(api.update("1"), { name: "New" });
-    expect(toast.success).toHaveBeenCalledWith("New is updated");
+    await waitFor(() =>
+      expect(axios.put).toHaveBeenCalledWith(api.update("1"), { name: "New" })
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("New is updated")
+    );
     await waitFor(() =>
       expect(screen.queryByTestId("modal")).not.toBeInTheDocument()
     );
@@ -216,7 +257,7 @@ describe("CreateCategory", () => {
     );
 
     // Assert
-    expect(toast.error).toHaveBeenCalledWith("nope");
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("nope"));
     expect(screen.getByTestId("modal")).toBeInTheDocument();
   });
 
@@ -245,7 +286,9 @@ describe("CreateCategory", () => {
     );
 
     // Assert
-    expect(toast.error).toHaveBeenCalledWith("Something went wrong");
+    expect(toast.error).toHaveBeenCalledWith(
+      "An error occurred while updating category"
+    );
   });
 
   test("update: clicking modal close button hides modal", async () => {
@@ -295,6 +338,61 @@ describe("CreateCategory", () => {
     expect(modalInput).toHaveValue("PrefillMe");
   });
 
+  test("update: empty name shows validation error", async () => {
+    // Arrange
+    axios.get.mockResolvedValueOnce({
+      data: { success: true, category: [{ _id: "1", name: "OldName" }] },
+    });
+
+    render(<CreateCategory />);
+    await screen.findByText("OldName");
+
+    // Act
+    const row = findRowByName("OldName");
+    const editBtn = within(row).getByRole("button", { name: /edit/i });
+    await userEvent.click(editBtn);
+
+    const modal = await screen.findByTestId("modal");
+    const modalInput =
+      within(modal).getByPlaceholderText(/enter new category/i);
+    await userEvent.clear(modalInput);
+    await userEvent.click(
+      within(modal).getByRole("button", { name: /submit/i })
+    );
+
+    // Assert
+    expect(toast.error).toHaveBeenCalledWith("Category name is required");
+    expect(axios.put).not.toHaveBeenCalled();
+  });
+
+  test("update: whitespace-only name shows validation error", async () => {
+    // Arrange
+    axios.get.mockResolvedValueOnce({
+      data: { success: true, category: [{ _id: "1", name: "OldName" }] },
+    });
+
+    render(<CreateCategory />);
+    await screen.findByText("OldName");
+
+    // Act
+    const row = findRowByName("OldName");
+    const editBtn = within(row).getByRole("button", { name: /edit/i });
+    await userEvent.click(editBtn);
+
+    const modal = await screen.findByTestId("modal");
+    const modalInput =
+      within(modal).getByPlaceholderText(/enter new category/i);
+    await userEvent.clear(modalInput);
+    await userEvent.type(modalInput, "   ");
+    await userEvent.click(
+      within(modal).getByRole("button", { name: /submit/i })
+    );
+
+    // Assert
+    expect(toast.error).toHaveBeenCalledWith("Category name is required");
+    expect(axios.put).not.toHaveBeenCalled();
+  });
+
   test("delete: success path toasts and refetches", async () => {
     // Arrange
     axios.get
@@ -314,7 +412,7 @@ describe("CreateCategory", () => {
 
     // Assert
     expect(axios.delete).toHaveBeenCalledWith(api.del("3"));
-    expect(toast.success).toHaveBeenCalledWith("category is deleted");
+    expect(toast.success).toHaveBeenCalledWith("Category is deleted");
     await waitFor(() => expect(findRowByName("Zeta")).toBeFalsy());
   });
 
@@ -377,7 +475,9 @@ describe("CreateCategory", () => {
     await userEvent.click(delBtn);
 
     // Assert
-    expect(toast.error).toHaveBeenCalledWith("Something went wrong");
+    expect(toast.error).toHaveBeenCalledWith(
+      "An error occurred while deleting category"
+    );
   });
 
   test("create: when API returns success=false, it does NOT refetch", async () => {
