@@ -14,7 +14,7 @@ jest.mock("react-hot-toast");
 
 // Mock context providers
 jest.mock("../context/cart", () => ({
-  useCart: jest.fn(() => [[], jest.fn()]),
+  useCart: jest.fn(() => ({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() })),
 }));
 
 jest.mock("../context/search", () => ({
@@ -395,8 +395,14 @@ describe("CategoryProduct Component", () => {
   it("should add product to cart when cart is empty (when cart is implemented)", async () => {
     // Arrange
     const { useCart } = require("../context/cart");
-    const setCart = jest.fn();
-    useCart.mockReturnValue([[], setCart]);
+    const addToCart = jest.fn();
+    useCart.mockReturnValue({
+      cart: {},
+      addToCart,
+      removeFromCart: jest.fn(),
+      updateQuantity: jest.fn(),
+      clearCart: jest.fn(),
+    });
 
     const mockProducts = [
       { _id: "1", name: "Test Product", slug: "test-product", price: 100, description: "Test product" }
@@ -429,34 +435,31 @@ describe("CategoryProduct Component", () => {
       // Cart functionality is implemented - test it
       fireEvent.click(addToCartButton);
 
-      expect(setCart).toHaveBeenCalledWith([mockProducts[0]]);
-      await waitFor(() => {
-        expect(localStorage.setItem).toHaveBeenCalledWith(
-          "cart",
-          JSON.stringify([mockProducts[0]])
-        );
-      });
-      expect(toast.success).toHaveBeenCalledWith("Item Added to cart");
+      expect(addToCart).toHaveBeenCalledWith("test-product");
     } else {
       // Cart functionality is not yet implemented - verify products display correctly
       expect(getByText("Test Product")).toBeInTheDocument();
       expect(getByText("More Details")).toBeInTheDocument();
 
       // Verify that when cart is implemented, the test structure is ready
-      expect(setCart).toBeDefined();
-      expect(localStorage.setItem).toBeDefined();
-      expect(toast.success).toBeDefined();
+      expect(addToCart).toBeDefined();
     }
   });
 
   it("should add product to cart when cart is not empty (when cart is implemented)", async () => {
     // Arrange
     const { useCart } = require("../context/cart");
-    const existingCart = [
-      { _id: "2", name: "Existing Product", slug: "existing", price: 200, description: "Existing" }
-    ];
-    const setCart = jest.fn();
-    useCart.mockReturnValue([existingCart, setCart]);
+    const existingCart = {
+      "existing": { quantity: 1, price: 200, productId: "2" }
+    };
+    const addToCart = jest.fn();
+    useCart.mockReturnValue({
+      cart: existingCart,
+      addToCart,
+      removeFromCart: jest.fn(),
+      updateQuantity: jest.fn(),
+      clearCart: jest.fn(),
+    });
 
     const mockProducts = [
       { _id: "1", name: "New Product", slug: "new-product", price: 100, description: "New product" }
@@ -489,22 +492,15 @@ describe("CategoryProduct Component", () => {
       // Cart functionality is implemented - test it
       fireEvent.click(addToCartButton);
 
-      expect(setCart).toHaveBeenCalledWith([...existingCart, mockProducts[0]]);
-      await waitFor(() => {
-        expect(localStorage.setItem).toHaveBeenCalledWith(
-          "cart",
-          JSON.stringify([...existingCart, mockProducts[0]])
-        );
-      });
-      expect(toast.success).toHaveBeenCalledWith("Item Added to cart");
+      expect(addToCart).toHaveBeenCalledWith("new-product");
     } else {
       // Cart functionality is not yet implemented - verify products display correctly
       expect(getByText("New Product")).toBeInTheDocument();
       expect(getByText("More Details")).toBeInTheDocument();
 
       // Verify that cart context is properly set up for when it's implemented
-      expect(existingCart).toHaveLength(1);
-      expect(setCart).toBeDefined();
+      expect(Object.keys(existingCart)).toHaveLength(1);
+      expect(addToCart).toBeDefined();
     }
   });
 });
