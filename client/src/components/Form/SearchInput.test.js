@@ -69,16 +69,6 @@ describe('Search Input Component', () => {
 
 
 describe('Search Input Form Submission', () => {
-   beforeEach(() => {
-       useSearch.mockReturnValue([
-           {
-               keyword: "",
-               results: []
-           },
-           jest.fn()
-       ]);
-   });
-
    afterEach(() => {
        jest.clearAllMocks();
    });
