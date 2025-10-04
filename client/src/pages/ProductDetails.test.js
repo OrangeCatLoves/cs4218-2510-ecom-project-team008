@@ -110,10 +110,17 @@ describe('ProductDetails Component', () => {
   });
 
   describe('API Call Behavior', () => {
-    test('should make initial product API call when slug exists', async () => {
+    test('should fetch product and related products when slug exists', async () => {
       // Arrange
+      const mockProduct = {
+        _id: '1',
+        name: 'Test Product',
+        category: { _id: 'cat1' }
+      };
       mockUseParams.mockReturnValue({ slug: 'test-product' });
-      mockAxios.get.mockResolvedValue({ data: { product: {} } });
+      mockAxios.get
+        .mockResolvedValueOnce({ data: { product: mockProduct } })
+        .mockResolvedValueOnce({ data: { products: [] } });
 
       // Act
       renderWithRouter(<ProductDetails />);
@@ -121,6 +128,7 @@ describe('ProductDetails Component', () => {
       // Assert
       await waitFor(() => {
         expect(mockAxios.get).toHaveBeenCalledWith('/api/v1/product/get-product/test-product');
+        expect(mockAxios.get).toHaveBeenCalledWith('/api/v1/product/related-product/1/cat1');
       });
     });
 
