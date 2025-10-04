@@ -3,9 +3,7 @@ node_modules
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-
-.env
-.scannerwork/
 .claude
 docs
+.env
 .idea/
