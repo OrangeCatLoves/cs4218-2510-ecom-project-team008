@@ -395,6 +395,83 @@ describe('Product Controller Tests', () => {
     });
   });
 
+  describe('productFiltersController - query construction validation', () => {
+    it('should build query with only category filter when price is empty', async () => {
+      // Arrange
+      mockReq.body = {
+        checked: ['cat1', 'cat2'],
+        radio: []
+      };
+      productModel.find.mockResolvedValue([]);
+
+      // Act
+      await productFiltersController(mockReq, mockRes);
+
+      // Assert - Verify EXACT query structure
+      expect(productModel.find).toHaveBeenCalledWith({
+        category: ['cat1', 'cat2']
+        // Should NOT have price field
+      });
+      
+      const callArgs = productModel.find.mock.calls[0][0];
+      expect(callArgs).not.toHaveProperty('price');
+    });
+
+    it('should build query with only price filter when category is empty', async () => {
+      // Arrange
+      mockReq.body = {
+        checked: [],
+        radio: [100, 500]
+      };
+      productModel.find.mockResolvedValue([]);
+
+      // Act
+      await productFiltersController(mockReq, mockRes);
+
+      // Assert
+      expect(productModel.find).toHaveBeenCalledWith({
+        price: { $gte: 100, $lte: 500 }
+      });
+      
+      const callArgs = productModel.find.mock.calls[0][0];
+      expect(callArgs).not.toHaveProperty('category');
+    });
+
+    it('should handle single category in checked array', async () => {
+      // Arrange
+      mockReq.body = {
+        checked: ['electronics'],
+        radio: []
+      };
+      productModel.find.mockResolvedValue([]);
+
+      // Act
+      await productFiltersController(mockReq, mockRes);
+
+      // Assert
+      expect(productModel.find).toHaveBeenCalledWith({
+        category: ['electronics']
+      });
+    });
+
+    it('should handle price range with same min and max value', async () => {
+      // Arrange
+      mockReq.body = {
+        checked: [],
+        radio: [100, 100]
+      };
+      productModel.find.mockResolvedValue([]);
+
+      // Act
+      await productFiltersController(mockReq, mockRes);
+
+      // Assert
+      expect(productModel.find).toHaveBeenCalledWith({
+        price: { $gte: 100, $lte: 100 }
+      });
+    });
+  });
+
   describe('searchProductController', () => {
     it('should search products by keyword', async () => {
       // Arrange
@@ -442,6 +519,51 @@ describe('Product Controller Tests', () => {
         error
       });
     });
+
+    it('should perform case-insensitive search', async () => {
+      // Arrange
+      mockReq.params.keyword = 'LAPTOP';
+      const mockQuery = {
+        select: jest.fn().mockResolvedValue([])
+      };
+      productModel.find.mockReturnValue(mockQuery);
+
+      // Act
+      await searchProductController(mockReq, mockRes);
+
+      // Assert
+      expect(productModel.find).toHaveBeenCalledWith({
+        $or: [
+          { name: { $regex: 'LAPTOP', $options: 'i' } },
+          { description: { $regex: 'LAPTOP', $options: 'i' } }
+        ]
+      });
+      
+      // Verify the 'i' option is present
+      const callArgs = productModel.find.mock.calls[0][0];
+      expect(callArgs.$or[0].name.$options).toBe('i');
+      expect(callArgs.$or[1].description.$options).toBe('i');
+    });
+
+    it('should search with special characters in keyword', async () => {
+      // Arrange - Test with special regex characters
+      mockReq.params.keyword = 'laptop.pro+';
+      const mockQuery = {
+        select: jest.fn().mockResolvedValue([])
+      };
+      productModel.find.mockReturnValue(mockQuery);
+
+      // Act
+      await searchProductController(mockReq, mockRes);
+
+      // Assert - Should pass the keyword as-is (MongoDB handles escaping)
+      expect(productModel.find).toHaveBeenCalledWith({
+        $or: [
+          { name: { $regex: 'laptop.pro+', $options: 'i' } },
+          { description: { $regex: 'laptop.pro+', $options: 'i' } }
+        ]
+      });
+    });
   });
 
   describe('realtedProductController', () => {
@@ -478,6 +600,26 @@ describe('Product Controller Tests', () => {
         products: mockProducts
       });
     });
+
+    it('should handle errors when fetching related products', async () => {
+      // Arrange
+      mockReq.params = { pid: 'product123', cid: 'category456' };
+      const error = new Error('Database error');
+      productModel.find.mockImplementation(() => {
+        throw error;
+      });
+
+      // Act
+      await realtedProductController(mockReq, mockRes);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        message: 'error while geting related product',
+        error
+      });
+    });
   });
 
   describe('productCategoryController', () => {
@@ -507,6 +649,47 @@ describe('Product Controller Tests', () => {
         success: true,
         category: mockCategory,
         products: mockProducts
+      });
+    });
+
+    it('should handle errors when category is not found', async () => {
+      // Arrange
+      mockReq.params.slug = 'non-existent';
+      const error = new Error('Category not found');
+      categoryModel.findOne.mockRejectedValue(error);
+
+      // Act
+      await productCategoryController(mockReq, mockRes);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        error,
+        message: 'Error While Getting products'
+      });
+    });
+
+    it('should handle errors when products query fails', async () => {
+      // Arrange
+      mockReq.params.slug = 'electronics';
+      const mockCategory = { _id: 'cat123', name: 'Electronics' };
+      const error = new Error('Products query failed');
+      
+      categoryModel.findOne.mockResolvedValue(mockCategory);
+      productModel.find.mockImplementation(() => {
+        throw error;
+      });
+
+      // Act
+      await productCategoryController(mockReq, mockRes);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        error,
+        message: 'Error While Getting products'
       });
     });
   });
