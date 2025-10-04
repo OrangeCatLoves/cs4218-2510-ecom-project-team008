@@ -113,7 +113,7 @@ describe('Product Controller Tests', () => {
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.send).toHaveBeenCalledWith({
         success: false,
-        message: 'Erorr in getting products',
+        message: 'Error in getting products',
         error: error.message
       });
     });
@@ -166,7 +166,7 @@ describe('Product Controller Tests', () => {
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.send).toHaveBeenCalledWith({
         success: false,
-        message: 'Eror while getitng single product',
+        message: 'Error while getting single product',
         error
       });
     });
@@ -175,7 +175,7 @@ describe('Product Controller Tests', () => {
   describe('productPhotoController', () => {
     it('should return product photo successfully', async () => {
       // Arrange
-      mockReq.params.pid = 'product123';
+      mockReq.params.pid = '507f1f77bcf86cd799439011'; // Valid 24-char ObjectId
       const mockProduct = {
         photo: {
           data: Buffer.from('image data'),
@@ -193,7 +193,7 @@ describe('Product Controller Tests', () => {
       await productPhotoController(mockReq, mockRes);
 
       // Assert
-      expect(productModel.findById).toHaveBeenCalledWith('product123');
+      expect(productModel.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
       expect(mockQuery.select).toHaveBeenCalledWith('photo');
       expect(mockRes.set).toHaveBeenCalledWith('Content-type', 'image/jpeg');
       expect(mockRes.status).toHaveBeenCalledWith(200);
@@ -202,7 +202,7 @@ describe('Product Controller Tests', () => {
 
     it('should handle errors when getting photo', async () => {
       // Arrange
-      mockReq.params.pid = 'product123';
+      mockReq.params.pid = '507f1f77bcf86cd799439011'; // Valid ObjectId
       const error = new Error('Photo not found');
       productModel.findById.mockImplementation(() => {
         throw error;
@@ -215,8 +215,75 @@ describe('Product Controller Tests', () => {
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.send).toHaveBeenCalledWith({
         success: false,
-        message: 'Erorr while getting photo',
+        message: 'Error while getting photo',
         error
+      });
+    });
+
+    it('should return 404 when product does not exist', async () => {
+      // Arrange
+      mockReq.params.pid = '507f1f77bcf86cd799439011'; // Valid ObjectId
+      const mockQuery = {
+        select: jest.fn().mockResolvedValue(null)
+      };
+      productModel.findById.mockReturnValue(mockQuery);
+
+      // Act
+      await productPhotoController(mockReq, mockRes);
+
+      // Assert
+      expect(productModel.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        message: "Product not found"
+      });
+    });
+  });
+
+  describe('productPhotoController - input validation', () => {
+    it('should return 400 for invalid product ID format', async () => {
+      // Arrange
+      mockReq.params.pid = 'undefined'; // Invalid ObjectId
+
+      // Act
+      await productPhotoController(mockReq, mockRes);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        message: "Invalid product ID"
+      });
+    });
+
+    it('should return 400 for non-ObjectId string', async () => {
+      // Arrange
+      mockReq.params.pid = 'not-a-valid-id';
+
+      // Act
+      await productPhotoController(mockReq, mockRes);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        message: "Invalid product ID"
+      });
+    });
+
+    it('should return 400 for empty product ID', async () => {
+      // Arrange
+      mockReq.params.pid = '';
+
+      // Act
+      await productPhotoController(mockReq, mockRes);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        message: "Invalid product ID"
       });
     });
   });
@@ -688,9 +755,9 @@ describe('Product Controller Tests', () => {
   });
 
   describe('productPhotoController - edge cases', () => {
-    it('should handle product with no photo data', async () => {
+    it('should return 404 when product has no photo data', async () => {
       // Arrange
-      mockReq.params.pid = 'product123';
+      mockReq.params.pid = '507f1f77bcf86cd799439011'; // CHANGE TO VALID OBJECTID
       const mockProduct = {
         photo: {
           data: null, // No photo data
@@ -708,11 +775,13 @@ describe('Product Controller Tests', () => {
       await productPhotoController(mockReq, mockRes);
 
       // Assert
-      expect(productModel.findById).toHaveBeenCalledWith('product123');
+      expect(productModel.findById).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
       expect(mockQuery.select).toHaveBeenCalledWith('photo');
-      // Should not set content type or send data when photo.data is null
-      expect(mockRes.set).not.toHaveBeenCalled();
-      expect(mockRes.status).not.toHaveBeenCalledWith(200);
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.send).toHaveBeenCalledWith({
+        success: false,
+        message: "Product photo not found"
+      });
     });
   });
 
