@@ -554,7 +554,31 @@ describe('updateProfileController', () => {
           updatedUser: mockUser
         })
       }
-  )
+  );
+
+  it('should return 500 and console log error if error is thrown', async () => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {name: "Updated Name"}
+    };
+    const error = new Error("An Error Occurred...");
+    userModel.findById.mockResolvedValueOnce(mockUser);
+    userModel.findByIdAndUpdate.mockRejectedValueOnce(error);
+    const consoleSpy = jest.spyOn(console, 'log');
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      success: false,
+      message: "Error While Update profile",
+      error,
+    });
+    expect(consoleSpy).toHaveBeenCalledWith(error);
+  });
 });
 
 jest.mock("../models/orderModel");
@@ -714,7 +738,7 @@ describe('getAllOrdersController', () => {
     expect(res.json).toHaveBeenCalledWith(mockResults);
   })
 
-  test('should return 500 when error is thrown', async () => {
+  test('should return 500 and console log error when error is thrown', async () => {
     // Arrange
     const req = {};
     const error = new Error("An error occurred...")
@@ -725,6 +749,8 @@ describe('getAllOrdersController', () => {
         })
       })
     });
+    const consoleSpy = jest.spyOn(console, 'log');
+    consoleSpy.mockImplementationOnce(() => {});
 
     // Act
     await getAllOrdersController(req, res);
@@ -736,6 +762,7 @@ describe('getAllOrdersController', () => {
       message: "Error While Getting Orders",
       error,
     });
+    expect(consoleSpy).toHaveBeenCalledWith(error);
   });
 });
 
@@ -818,6 +845,7 @@ describe('orderStatusController', () => {
         };
         const error = new Error("An error occurred...");
         orderModel.findByIdAndUpdate.mockRejectedValueOnce(error);
+        const consoleSpy = jest.spyOn(console, 'log');
 
         // Act
         await orderStatusController(req, res);
@@ -829,6 +857,7 @@ describe('orderStatusController', () => {
           message: "Error While Updating Order",
           error,
         });
+        expect(consoleSpy).toHaveBeenCalledWith(error);
       }
   )
 });
