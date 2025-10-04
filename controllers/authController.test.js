@@ -3,7 +3,7 @@ import userModel from "../models/userModel.js";
 import {
   registerController, loginController, forgotPasswordController, testController,
   updateProfileController, getOrdersController, getAllOrdersController,
-    orderStatusController
+  orderStatusController, getAllUsersController
 } from "./authController.js";
 import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 import {expect} from "@playwright/test";
@@ -554,7 +554,31 @@ describe('updateProfileController', () => {
           updatedUser: mockUser
         })
       }
-  )
+  );
+
+  it('should return 500 and console log error if error is thrown', async () => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {name: "Updated Name"}
+    };
+    const error = new Error("An Error Occurred...");
+    userModel.findById.mockResolvedValueOnce(mockUser);
+    userModel.findByIdAndUpdate.mockRejectedValueOnce(error);
+    const consoleSpy = jest.spyOn(console, 'log');
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.send).toHaveBeenCalledWith({
+      success: false,
+      message: "Error While Update profile",
+      error,
+    });
+    expect(consoleSpy).toHaveBeenCalledWith(error);
+  });
 });
 
 jest.mock("../models/orderModel");
@@ -694,7 +718,7 @@ describe('getAllOrdersController', () => {
     status: "Shipped"
   };
 
-  test('should return all orders when found', async() => {
+  test('should return all orders when found', async () => {
     // Arrange
     const req = {};
     const mockResults = [mockOrder1, mockOrder2, mockOrder3];
@@ -714,7 +738,7 @@ describe('getAllOrdersController', () => {
     expect(res.json).toHaveBeenCalledWith(mockResults);
   })
 
-  test('should return 500 when error is thrown', async() => {
+  test('should return 500 and console log error when error is thrown', async () => {
     // Arrange
     const req = {};
     const error = new Error("An error occurred...")
@@ -725,6 +749,8 @@ describe('getAllOrdersController', () => {
         })
       })
     });
+    const consoleSpy = jest.spyOn(console, 'log');
+    consoleSpy.mockImplementationOnce(() => {});
 
     // Act
     await getAllOrdersController(req, res);
@@ -736,99 +762,163 @@ describe('getAllOrdersController', () => {
       message: "Error While Getting Orders",
       error,
     });
+    expect(consoleSpy).toHaveBeenCalledWith(error);
+  });
+});
+
+describe('orderStatusController', () => {
+  let res;
+  let mockProduct, mockOrder;
+  beforeEach(() => {
+    res = {
+      json: jest.fn(),
+      send: jest.fn(),
+      status: jest.fn().mockReturnThis()
+    };
+
+    mockProduct = {
+      name: "Mock Name",
+      slug: "Mock Slug",
+      description: "Mock Description",
+      price: 19.99,
+      category: "Mock Category",
+      quantity: 1,
+      shipping: true,
+    };
+
+    mockOrder = {
+      _id: 1,
+      products: [1],
+      payment: {success: true, message: "Mock Message"},
+      buyer: {_id: 1},
+      status: "Not Process"
+    };
   });
 
-  describe('orderStatusController', () => {
-    let res;
-    let mockProduct, mockOrder;
-    beforeEach(() => {
-      res = {
-        json: jest.fn(),
-        send: jest.fn(),
-        status: jest.fn().mockReturnThis()
-      };
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
-      mockProduct = {
-        name: "Mock Name",
-        slug: "Mock Slug",
-        description: "Mock Description",
-        price: 19.99,
-        category: "Mock Category",
-        quantity: 1,
-        shipping: true,
-      };
-
-      mockOrder = {
-        _id: 1,
-        products: [1],
-        payment: {success: true, message: "Mock Message"},
-        buyer: {_id: 1},
-        status: "Not Process"
-      };
-    });
-
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-
-    const statuses = ["Not Process", "Processing", "Shipped", "delivered", "cancel"]
-    test.each(statuses)(
-        'should update order to each valid state properly', async (status) => {
-          // Arrange
-          const req = {
-            params: {orderId: mockOrder._id},
-            body: {status: status}
-          }
-          const updatedOrder = {
-            ...mockOrder,
-            status: status
-          };
-          orderModel.findByIdAndUpdate.mockResolvedValueOnce(updatedOrder);
-
-          // Act
-          await orderStatusController(req, res);
-
-          // Assert
-          expect(res.json).toHaveBeenCalledWith(updatedOrder);
-    });
-
-    test.each(statuses)(
-        'should return null if no order with given id is found', async(status) => {
-          // Arrange
-          const req = {
-            params: {orderId: "Invalid ID"},
-            body: {status: status}
-          };
-          orderModel.findByIdAndUpdate.mockResolvedValueOnce(null);
-
-          // Act
-          await orderStatusController(req, res);
-
-          // Assert
-          expect(res.json).toHaveBeenCalledWith(null);
-    });
-
-    test.each(statuses)(
-        'should return 500 with error message when error occurs', async(status) => {
-          // Arrange
-          const req = {
-            params: {orderId: mockOrder._id},
-            body: {status: status}
-          };
-          const error = new Error("An error occurred...");
-          orderModel.findByIdAndUpdate.mockRejectedValueOnce(error);
-
-          // Act
-          await orderStatusController(req, res);
-
-          // Assert
-          expect(res.status).toHaveBeenCalledWith(500);
-          expect(res.send).toHaveBeenCalledWith({
-            success: false,
-            message: "Error While Updating Order",
-            error,
-          });
+  const statuses = ["Not Process", "Processing", "Shipped", "delivered", "cancel"]
+  test.each(statuses)(
+      'should update order to each valid state properly', async (status) => {
+        // Arrange
+        const req = {
+          params: {orderId: mockOrder._id},
+          body: {status: status}
         }
-    )
+        const updatedOrder = {
+          ...mockOrder,
+          status: status
+        };
+        orderModel.findByIdAndUpdate.mockResolvedValueOnce(updatedOrder);
+
+        // Act
+        await orderStatusController(req, res);
+
+        // Assert
+        expect(res.json).toHaveBeenCalledWith(updatedOrder);
+  });
+
+  test.each(statuses)(
+      'should return null if no order with given id is found', async(status) => {
+        // Arrange
+        const req = {
+          params: {orderId: "Invalid ID"},
+          body: {status: status}
+        };
+        orderModel.findByIdAndUpdate.mockResolvedValueOnce(null);
+
+        // Act
+        await orderStatusController(req, res);
+
+        // Assert
+        expect(res.json).toHaveBeenCalledWith(null);
+  });
+
+  test.each(statuses)(
+      'should return 500 with error message when error occurs', async(status) => {
+        // Arrange
+        const req = {
+          params: {orderId: mockOrder._id},
+          body: {status: status}
+        };
+        const error = new Error("An error occurred...");
+        orderModel.findByIdAndUpdate.mockRejectedValueOnce(error);
+        const consoleSpy = jest.spyOn(console, 'log');
+
+        // Act
+        await orderStatusController(req, res);
+
+        // Assert
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.send).toHaveBeenCalledWith({
+          success: false,
+          message: "Error While Updating Order",
+          error,
+        });
+        expect(consoleSpy).toHaveBeenCalledWith(error);
+      }
+  )
+});
+
+describe('getAllUsersController', () => {
+  let res;
+  const mockUser = {
+    _id: 1,
+    name: "Mock Name",
+    email: "Mock Email",
+    phone: "Mock Phone",
+    address: "Mock Address"
+  };
+
+  beforeEach(() => {
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      send: jest.fn(),
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should return users json when find successful', async() => {
+    // Arrange
+    const req = {};
+    const mockResults = [mockUser];
+    userModel.find.mockReturnValueOnce({
+      sort: jest.fn().mockReturnValueOnce(mockResults)
+    });
+
+    // Act
+    await getAllUsersController(req, res);
+
+    // Assert
+    expect(res.json).toHaveBeenCalledWith(mockResults);
+  });
+
+  it('should return 500 and console log error if any error occurs', async() => {
+    // Arrange
+    const req = {};
+    const error = new Error("An Error Occurred...");
+    userModel.find.mockReturnValueOnce({
+      sort: jest.fn().mockRejectedValueOnce(error),
+    });
+    const consoleSpy = jest.spyOn(console, 'log');
+    consoleSpy.mockImplementationOnce(() => {});
+
+    // Act
+    await getAllUsersController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.send).toHaveBeenCalledWith({
+      success: false,
+      message: "Error While Fetching All Users",
+      error
+    });
+    expect(consoleSpy).toHaveBeenCalledWith(error);
   });
 });
