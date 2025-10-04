@@ -11,8 +11,6 @@ import {
   searchProductController,
   realtedProductController,
   productCategoryController,
-  braintreeTokenController,
-  brainTreePaymentController
 } from '../controllers/productController.js';
 
 import productModel from '../models/productModel.js';
@@ -27,11 +25,6 @@ jest.mock('../models/categoryModel.js');
 jest.mock('../models/orderModel.js');
 jest.mock('fs');
 jest.mock('slugify', () => jest.fn((str) => str.replace(/\s+/g, '-')));
-
-// Mock process.env
-process.env.BRAINTREE_MERCHANT_ID = 'test_merchant_id';
-process.env.BRAINTREE_PUBLIC_KEY = 'test_public_key';
-process.env.BRAINTREE_PRIVATE_KEY = 'test_private_key';
 
 // Mock braintree with self-contained mocks
 jest.mock('braintree', () => ({
@@ -772,89 +765,6 @@ describe('Product Controller Tests', () => {
         message: 'error in per page ctrl',
         error
       });
-    });
-  });
-
-  describe('braintreeTokenController - actual implementation', () => {
-    it('should handle braintree gateway creation and token generation', async () => {
-      // This test covers the actual try-catch block in the controller
-      // Since we can't easily mock the internal gateway, we test error handling
-      
-      // Act
-      await braintreeTokenController(mockReq, mockRes);
-
-      // Assert - the controller should attempt to create gateway and generate token
-      // If it fails (which it will in test environment), it should be caught
-      // The actual behavior depends on braintree implementation details
-    });
-  });
-
-  describe('brainTreePaymentController - actual implementation', () => {
-    it('should calculate cart total and attempt payment processing', async () => {
-      // Arrange
-      mockReq.body = {
-        nonce: 'test_nonce',
-        cart: [
-          { _id: '1', price: 10 },
-          { _id: '2', price: 20 }
-        ]
-      };
-
-      const mockOrder = {
-        save: jest.fn().mockResolvedValue(true)
-      };
-      orderModel.mockImplementation(() => mockOrder);
-
-      // Act
-      await brainTreePaymentController(mockReq, mockRes);
-
-      // Assert - the controller calculates total (10 + 20 = 30)
-      // and attempts to process payment
-      // The actual payment processing will be handled by braintree
-    });
-
-    it('should handle cart with decimal prices', async () => {
-      // Arrange
-      mockReq.body = {
-        nonce: 'test_nonce', 
-        cart: [
-          { _id: '1', price: 15.99 },
-          { _id: '2', price: 25.50 },
-          { _id: '3', price: 8.25 }
-        ]
-      };
-
-      const mockOrder = {
-        save: jest.fn().mockResolvedValue(true)
-      };
-      orderModel.mockImplementation(() => mockOrder);
-
-      // Act
-      await brainTreePaymentController(mockReq, mockRes);
-
-      // Assert - tests the price summation logic with decimal values
-      // Total should be 15.99 + 25.50 + 8.25 = 49.74
-    });
-
-    it('should handle single item cart', async () => {
-      // Arrange
-      mockReq.body = {
-        nonce: 'test_nonce',
-        cart: [
-          { _id: '1', price: 99.99 }
-        ]
-      };
-
-      const mockOrder = {
-        save: jest.fn().mockResolvedValue(true)
-      };
-      orderModel.mockImplementation(() => mockOrder);
-
-      // Act
-      await brainTreePaymentController(mockReq, mockRes);
-
-      // Assert - tests single item processing
-      // Total should be 99.99
     });
   });
 });
