@@ -12,7 +12,8 @@ import {
   realtedProductController,
   productCategoryController,
   braintreeTokenController,
-  brainTreePaymentController
+  brainTreePaymentController,
+  gateway
 } from '../controllers/productController.js';
 
 import productModel from '../models/productModel.js';
@@ -775,86 +776,195 @@ describe('Product Controller Tests', () => {
     });
   });
 
-  describe('braintreeTokenController - actual implementation', () => {
-    it('should handle braintree gateway creation and token generation', async () => {
-      // This test covers the actual try-catch block in the controller
-      // Since we can't easily mock the internal gateway, we test error handling
-      
+  describe('braintreeTokenController', () => {
+    it('should generate client token successfully', async () => {
+      // Arrange
+      const mockResponse = { clientToken: 'test-client-token-123' };
+      gateway.clientToken.generate = jest.fn((options, callback) => {
+        callback(null, mockResponse);
+      });
+
       // Act
       await braintreeTokenController(mockReq, mockRes);
 
-      // Assert - the controller should attempt to create gateway and generate token
-      // If it fails (which it will in test environment), it should be caught
-      // The actual behavior depends on braintree implementation details
+      // Assert
+      expect(mockRes.send).toHaveBeenCalledWith(mockResponse);
     });
+
+    it('should handle token generation error', async () => {
+      // Arrange
+      const mockError = new Error('Braintree token generation failed');
+      gateway.clientToken.generate = jest.fn((options, callback) => {
+        callback(mockError, null);
+      });
+
+      // Act
+      await braintreeTokenController(mockReq, mockRes);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.send).toHaveBeenCalledWith(mockError);
+    });
+
   });
 
-  describe('brainTreePaymentController - actual implementation', () => {
-    it('should calculate cart total and attempt payment processing', async () => {
+  describe('brainTreePaymentController', () => {
+    it('should process successful payment with inventory decrement', async () => {
       // Arrange
-      mockReq.body = {
-        nonce: 'test_nonce',
-        cart: [
-          { _id: '1', price: 10 },
-          { _id: '2', price: 20 }
-        ]
+      const mockCart = {
+        'product-1': {
+          productId: '507f1f77bcf86cd799439011',
+          price: 29.99,
+          quantity: 2
+        },
+        'product-2': {
+          productId: '507f1f77bcf86cd799439012',
+          price: 15.50,
+          quantity: 3
+        }
       };
 
+      mockReq.body = {
+        nonce: 'fake-valid-nonce',
+        cart: mockCart
+      };
+
+      const mockPaymentResult = {
+        success: true,
+        transaction: { id: 'txn123', amount: '106.48' }
+      };
+
+      gateway.transaction.sale = jest.fn((transactionData, callback) => {
+        callback(null, mockPaymentResult);
+      });
+
       const mockOrder = {
-        save: jest.fn().mockResolvedValue(true)
+        save: jest.fn().mockResolvedValue({ _id: 'order123' })
+      };
+      orderModel.mockImplementation(() => mockOrder);
+
+      const mockUpdateQuery = {
+        exec: jest.fn().mockResolvedValue({})
+      };
+      productModel.findByIdAndUpdate.mockReturnValue(mockUpdateQuery);
+
+      // Act
+      await brainTreePaymentController(mockReq, mockRes);
+
+      // Assert - verify transaction.sale called with correct total
+      expect(gateway.transaction.sale).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: '106.48', // (29.99*2) + (15.50*3) = 106.48
+          paymentMethodNonce: 'fake-valid-nonce',
+          options: { submitForSettlement: true }
+        }),
+        expect.any(Function)
+      );
+
+      // Assert - verify order created with correct data
+      expect(orderModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          products: expect.any(Array),
+          payment: mockPaymentResult,
+          buyer: 'user123',
+          status: 'Processing'
+        })
+      );
+      expect(mockOrder.save).toHaveBeenCalled();
+
+      // Assert - verify inventory decremented for both products
+      expect(productModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        { $inc: { quantity: -2 } }
+      );
+      expect(productModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439012',
+        { $inc: { quantity: -3 } }
+      );
+      expect(mockUpdateQuery.exec).toHaveBeenCalledTimes(2);
+
+      // Assert - verify response
+      expect(mockRes.json).toHaveBeenCalledWith({ ok: true });
+    });
+
+    it('should handle failed payment (result.success = false)', async () => {
+      // Arrange
+      const mockCart = {
+        'product-1': {
+          productId: '507f1f77bcf86cd799439011',
+          price: 50.00,
+          quantity: 1
+        }
+      };
+
+      mockReq.body = {
+        nonce: 'fake-invalid-nonce',
+        cart: mockCart
+      };
+
+      const mockPaymentResult = {
+        success: false,
+        message: 'Insufficient funds'
+      };
+
+      gateway.transaction.sale = jest.fn((transactionData, callback) => {
+        callback(null, mockPaymentResult);
+      });
+
+      const mockOrder = {
+        save: jest.fn().mockResolvedValue({ _id: 'order456' })
       };
       orderModel.mockImplementation(() => mockOrder);
 
       // Act
       await brainTreePaymentController(mockReq, mockRes);
 
-      // Assert - the controller calculates total (10 + 20 = 30)
-      // and attempts to process payment
-      // The actual payment processing will be handled by braintree
+      // Assert - verify order created WITHOUT status field
+      expect(orderModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          products: expect.any(Array),
+          payment: mockPaymentResult,
+          buyer: 'user123'
+        })
+      );
+
+      // Assert - verify NO inventory decrement
+      expect(productModel.findByIdAndUpdate).not.toHaveBeenCalled();
+
+      // Assert - verify response
+      expect(mockRes.json).toHaveBeenCalledWith({ ok: true });
     });
 
-    it('should handle cart with decimal prices', async () => {
+    it('should handle gateway error (no result)', async () => {
       // Arrange
-      mockReq.body = {
-        nonce: 'test_nonce', 
-        cart: [
-          { _id: '1', price: 15.99 },
-          { _id: '2', price: 25.50 },
-          { _id: '3', price: 8.25 }
-        ]
+      const mockCart = {
+        'product-1': {
+          productId: '507f1f77bcf86cd799439011',
+          price: 25.00,
+          quantity: 1
+        }
       };
 
-      const mockOrder = {
-        save: jest.fn().mockResolvedValue(true)
+      mockReq.body = {
+        nonce: 'fake-nonce',
+        cart: mockCart
       };
-      orderModel.mockImplementation(() => mockOrder);
+
+      const mockError = new Error('Gateway connection failed');
+
+      gateway.transaction.sale = jest.fn((transactionData, callback) => {
+        callback(mockError, null);
+      });
 
       // Act
       await brainTreePaymentController(mockReq, mockRes);
 
-      // Assert - tests the price summation logic with decimal values
-      // Total should be 15.99 + 25.50 + 8.25 = 49.74
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.send).toHaveBeenCalledWith(mockError);
+      expect(orderModel).not.toHaveBeenCalled();
+      expect(productModel.findByIdAndUpdate).not.toHaveBeenCalled();
     });
 
-    it('should handle single item cart', async () => {
-      // Arrange
-      mockReq.body = {
-        nonce: 'test_nonce',
-        cart: [
-          { _id: '1', price: 99.99 }
-        ]
-      };
-
-      const mockOrder = {
-        save: jest.fn().mockResolvedValue(true)
-      };
-      orderModel.mockImplementation(() => mockOrder);
-
-      // Act
-      await brainTreePaymentController(mockReq, mockRes);
-
-      // Assert - tests single item processing
-      // Total should be 99.99
-    });
   });
 });
