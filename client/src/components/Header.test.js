@@ -35,7 +35,7 @@ describe('Header Component', () => {
     it('should display Register and Login links when user is not authenticated', () => {
       // Arrange
       useAuth.mockReturnValue([{ user: null }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -49,7 +49,7 @@ describe('Header Component', () => {
     it('should not display user dropdown when user is not authenticated', () => {
       // Arrange
       useAuth.mockReturnValue([{ user: null }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -66,7 +66,7 @@ describe('Header Component', () => {
       // Arrange
       const mockUser = { name: 'John Doe', role: 0 };
       useAuth.mockReturnValue([{ user: mockUser }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -80,7 +80,7 @@ describe('Header Component', () => {
       // Arrange
       const mockUser = { name: 'John Doe', role: 0 };
       useAuth.mockReturnValue([{ user: mockUser }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -95,7 +95,7 @@ describe('Header Component', () => {
       // Arrange
       const mockUser = { name: 'John Doe', role: 0 };
       useAuth.mockReturnValue([{ user: mockUser }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -112,7 +112,7 @@ describe('Header Component', () => {
       // Arrange
       const mockUser = { name: 'John Doe', role: 0 };
       useAuth.mockReturnValue([{ user: mockUser }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -127,7 +127,7 @@ describe('Header Component', () => {
       // Arrange
       const mockUser = { name: 'Admin User', role: 1 };
       useAuth.mockReturnValue([{ user: mockUser }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -145,7 +145,7 @@ describe('Header Component', () => {
       const mockUser = { name: 'John Doe', role: 0, token: 'abc123' };
       const mockAuth = { user: mockUser, token: 'abc123' };
       useAuth.mockReturnValue([mockAuth, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
       localStorage.setItem('auth', JSON.stringify(mockAuth));
 
@@ -175,7 +175,7 @@ describe('Header Component', () => {
         { _id: '3', name: 'Books', slug: 'books' },
       ];
       useAuth.mockReturnValue([{ user: null }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue(mockCategories);
 
       // Act
@@ -190,7 +190,7 @@ describe('Header Component', () => {
     it('should render "All Categories" link', () => {
       // Arrange
       useAuth.mockReturnValue([{ user: null }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -203,7 +203,7 @@ describe('Header Component', () => {
     it('should handle empty categories array', () => {
       // Arrange
       useAuth.mockReturnValue([{ user: null }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -217,9 +217,13 @@ describe('Header Component', () => {
   describe('Cart Badge Display', () => {
     it('should display cart count badge with correct number', () => {
       // Arrange
-      const mockCartItems = [{ id: 1 }, { id: 2 }, { id: 3 }];
+      const mockCartItems = {
+        'product-1': { quantity: 1, price: 100, productId: '1' },
+        'product-2': { quantity: 2, price: 200, productId: '2' },
+        'product-3': { quantity: 1, price: 150, productId: '3' }
+      };
       useAuth.mockReturnValue([{ user: null }, mockSetAuth]);
-      useCart.mockReturnValue([mockCartItems]);
+      useCart.mockReturnValue({ cart: mockCartItems, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act
@@ -233,7 +237,7 @@ describe('Header Component', () => {
     it('should display cart badge even when cart is empty', () => {
       // Arrange
       useAuth.mockReturnValue([{ user: null }, mockSetAuth]);
-      useCart.mockReturnValue([[]]);
+      useCart.mockReturnValue({ cart: {}, addToCart: jest.fn(), removeFromCart: jest.fn(), updateQuantity: jest.fn(), clearCart: jest.fn() });
       useCategory.mockReturnValue([]);
 
       // Act

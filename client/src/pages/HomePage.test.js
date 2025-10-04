@@ -119,7 +119,13 @@ describe("HomePage Component", () => {
 
     // Setup useCart mock with default return value
     const { useCart } = require("../context/cart");
-    useCart.mockReturnValue([[], jest.fn()]);
+    useCart.mockReturnValue({
+      cart: {},
+      addToCart: jest.fn(),
+      removeFromCart: jest.fn(),
+      updateQuantity: jest.fn(),
+      clearCart: jest.fn(),
+    });
 
     // Mock window.location.reload
     delete window.location;
@@ -295,8 +301,14 @@ describe("HomePage Component", () => {
   it("should add product to cart when Add to Cart is clicked", async () => {
     // Arrange
     const { useCart } = require("../context/cart");
-    const setCart = jest.fn();
-    useCart.mockReturnValue([[], setCart]);
+    const addToCart = jest.fn();
+    useCart.mockReturnValue({
+      cart: {},
+      addToCart,
+      removeFromCart: jest.fn(),
+      updateQuantity: jest.fn(),
+      clearCart: jest.fn(),
+    });
 
     const mockProducts = [
       { _id: "1", name: "Test Product", slug: "test-product", price: 100, description: "Test product" }
@@ -328,12 +340,7 @@ describe("HomePage Component", () => {
     fireEvent.click(addToCartButton);
 
     // Assert
-    expect(setCart).toHaveBeenCalledWith([mockProducts[0]]);
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      "cart",
-      JSON.stringify([mockProducts[0]])
-    );
-    expect(toast.success).toHaveBeenCalledWith("Item Added to cart");
+    expect(addToCart).toHaveBeenCalledWith("test-product");
   });
 
   it("should handle category filter selection", async () => {
