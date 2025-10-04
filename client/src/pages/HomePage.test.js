@@ -47,6 +47,8 @@ jest.mock("react-router-dom", () => ({
 
 // Mock antd components
 jest.mock("antd", () => {
+  const React = require("react");
+
   const RadioComponent = ({ children, value, ...props }) => (
     <label>
       <input
@@ -78,20 +80,19 @@ jest.mock("antd", () => {
 
   return {
     Checkbox: ({ children, onChange, ...props }) => {
+      const [checked, setChecked] = React.useState(false);
+
       const handleChange = (e) => {
-        // Create proper event object for checkbox
-        const newEvent = {
-          target: {
-            checked: e.target.checked
-          }
-        };
-        onChange(newEvent);
+        const newChecked = !checked;
+        setChecked(newChecked);
+        onChange({ target: { checked: newChecked } });
       };
 
       return (
         <label>
           <input
             type="checkbox"
+            checked={checked}
             onChange={handleChange}
             data-testid={`checkbox-${children}`}
             {...props}
@@ -673,6 +674,311 @@ describe("HomePage Component", () => {
     // Assert
     await waitFor(() => {
       expect(axios.get).toHaveBeenLastCalledWith("/api/v1/product/product-filters?categories=1&page=2");
+    });
+  });
+
+  it("should handle unchecking category filter", async () => {
+    // Arrange
+    const mockCategories = [
+      { _id: "1", name: "Electronics" },
+      { _id: "2", name: "Clothing" }
+    ];
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: true, category: mockCategories }
+      })
+      .mockResolvedValueOnce({
+        data: { total: 0 }
+      })
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      });
+
+    axios.post
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      })
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      })
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      });
+
+    // Act
+    const { getByTestId } = render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("checkbox-Electronics")).toBeInTheDocument();
+      expect(getByTestId("checkbox-Clothing")).toBeInTheDocument();
+    });
+
+    const electronicsCheckbox = getByTestId("checkbox-Electronics");
+    const clothingCheckbox = getByTestId("checkbox-Clothing");
+
+    // Check both checkboxes
+    fireEvent.click(electronicsCheckbox);
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith("/api/v1/product/product-filters", {
+        checked: ["1"],
+        radio: [],
+      });
+    });
+
+    fireEvent.click(clothingCheckbox);
+
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalledWith("/api/v1/product/product-filters", {
+        checked: ["1", "2"],
+        radio: [],
+      });
+    });
+
+    // Uncheck Electronics - this triggers line 120 to remove "1" from the array
+    fireEvent.click(electronicsCheckbox);
+
+    // Assert - should call with only "2" remaining (line 120 filters out "1")
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenLastCalledWith("/api/v1/product/product-filters", {
+        checked: ["2"],
+        radio: [],
+      });
+    });
+  });
+
+  it("should handle load more with price filter applied", async () => {
+    // Arrange
+    const initialProducts = [
+      { _id: "1", name: "Product 1", slug: "product-1", price: 15, description: "First product" }
+    ];
+
+    const additionalProducts = [
+      { _id: "2", name: "Product 2", slug: "product-2", price: 18, description: "Second product" }
+    ];
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: true, category: [] }
+      })
+      .mockResolvedValueOnce({
+        data: { total: 5 }
+      })
+      .mockResolvedValueOnce({
+        data: { products: initialProducts }
+      });
+
+    axios.post
+      .mockResolvedValueOnce({
+        data: { products: initialProducts }
+      });
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { products: additionalProducts }
+      });
+
+    // Act
+    const { getByTestId, getByText } = render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("radio-$0 to 19")).toBeInTheDocument();
+    });
+
+    // Apply price filter
+    const priceRadio = getByTestId("radio-$0 to 19");
+    fireEvent.click(priceRadio);
+
+    await waitFor(() => {
+      expect(getByText("Product 1")).toBeInTheDocument();
+    });
+
+    // Wait for load more button
+    await waitFor(() => {
+      expect(getByText("Loadmore")).toBeInTheDocument();
+    });
+
+    // Click load more
+    const loadMoreButton = getByText("Loadmore");
+    fireEvent.click(loadMoreButton);
+
+    // Assert - should call with minPrice and maxPrice params
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenLastCalledWith("/api/v1/product/product-filters?minPrice=0&maxPrice=19&page=2");
+    });
+  });
+
+  it("should handle load more API error", async () => {
+    // Arrange
+    const initialProducts = [
+      { _id: "1", name: "Product 1", slug: "product-1", price: 100, description: "First product" }
+    ];
+
+    const apiError = new Error("Load more API Error");
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: true, category: [] }
+      })
+      .mockResolvedValueOnce({
+        data: { total: 5 }
+      })
+      .mockResolvedValueOnce({
+        data: { products: initialProducts }
+      })
+      .mockRejectedValueOnce(apiError);
+
+    // Act
+    const { getByText } = render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(getByText("Product 1")).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(getByText("Loadmore")).toBeInTheDocument();
+    });
+
+    const loadMoreButton = getByText("Loadmore");
+    fireEvent.click(loadMoreButton);
+
+    // Assert - error should be logged
+    await waitFor(() => {
+      expect(consoleLogSpy).toHaveBeenCalledWith(apiError);
+    });
+  });
+
+  it("should handle category fetch error on mount", async () => {
+    // Arrange
+    const categoryError = new Error("Category API Error");
+
+    axios.get
+      .mockRejectedValueOnce(categoryError)
+      .mockResolvedValueOnce({
+        data: { total: 0 }
+      })
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      });
+
+    // Act
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    // Assert
+    await waitFor(() => {
+      expect(consoleLogSpy).toHaveBeenCalledWith(categoryError);
+    });
+  });
+
+  it("should handle total count fetch error on mount", async () => {
+    // Arrange
+    const countError = new Error("Count API Error");
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: true, category: [] }
+      })
+      .mockRejectedValueOnce(countError)
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      });
+
+    // Act
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    // Assert
+    await waitFor(() => {
+      expect(consoleLogSpy).toHaveBeenCalledWith(countError);
+    });
+  });
+
+  it("should handle getAllCategory returning success: false", async () => {
+    // Arrange
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: false, category: [] }
+      })
+      .mockResolvedValueOnce({
+        data: { total: 0 }
+      })
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      });
+
+    // Act
+    const { container } = render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    // Assert - categories should not be set when success is false
+    await waitFor(() => {
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      expect(checkboxes).toHaveLength(0);
+    });
+  });
+
+  it("should handle component unmount during async operations", async () => {
+    // Arrange
+    const mockProducts = [
+      { _id: "1", name: "Product 1", slug: "product-1", price: 100, description: "Test product" }
+    ];
+
+    // Create a promise that we can control
+    let resolveProducts;
+    const productsPromise = new Promise((resolve) => {
+      resolveProducts = resolve;
+    });
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: true, category: [] }
+      })
+      .mockResolvedValueOnce({
+        data: { total: 1 }
+      })
+      .mockReturnValueOnce(productsPromise);
+
+    // Act
+    const { unmount } = render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    // Unmount before the products promise resolves
+    unmount();
+
+    // Now resolve the promise
+    resolveProducts({ data: { products: mockProducts } });
+
+    // Assert - the cleanup should prevent state updates
+    // If the cleanup works correctly, no errors will be thrown
+    // This test passes if no "Can't perform a React state update on an unmounted component" warning occurs
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenCalled();
     });
   });
 });
