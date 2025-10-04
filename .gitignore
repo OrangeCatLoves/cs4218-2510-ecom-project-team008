@@ -6,3 +6,6 @@ node_modules
 
 .env
 .scannerwork/
+.claude
+docs
+.idea/

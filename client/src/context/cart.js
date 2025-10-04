@@ -1,3 +1,12 @@
+/*
+cart context should provide:
+  - addToCart() with inventory validation
+  - removeFromCart()
+  - updateQuantity() with stock checking
+  - clearCart()
+  - User-specific storage (cart-${user})
+*/
+
 import { useState, useContext, createContext, useEffect } from "react";
 
 const CartContext = createContext();
