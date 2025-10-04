@@ -1,6 +1,7 @@
 import productModel from "../models/productModel.js";
 import categoryModel from "../models/categoryModel.js";
 import orderModel from "../models/orderModel.js";
+import mongoose from "mongoose";
 
 import fs from "fs";
 import slugify from "slugify";
@@ -10,7 +11,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 //payment gateway
-var gateway = new braintree.BraintreeGateway({
+export var gateway = new braintree.BraintreeGateway({
   environment: braintree.Environment.Sandbox,
   merchantId: process.env.BRAINTREE_MERCHANT_ID,
   publicKey: process.env.BRAINTREE_PUBLIC_KEY,
@@ -332,7 +333,7 @@ export const braintreeTokenController = async (req, res) => {
   try {
     gateway.clientToken.generate({}, function (err, response) {
       if (err) {
-        res.status(500).send(err);
+        return res.status(500).send(err);
       } else {
         res.send(response);
       }
@@ -347,9 +348,18 @@ export const brainTreePaymentController = async (req, res) => {
   try {
     const { nonce, cart } = req.body;
     let total = 0;
-    cart.map((i) => {
-      total += i.price;
+    const productsPaid = []
+
+    Object.values(cart).map(item => {
+      total += item.price * item.quantity
+      for (let i = 0; i < item.quantity; i++) {
+        productsPaid.push(new mongoose.Types.ObjectId(item.productId));
+      }
     });
+
+    // Truncate price to 2dp
+    total = total.toFixed(2);
+
     let newTransaction = gateway.transaction.sale(
       {
         amount: total,
@@ -360,14 +370,32 @@ export const brainTreePaymentController = async (req, res) => {
       },
       function (error, result) {
         if (result) {
-          const order = new orderModel({
-            products: cart,
-            payment: result,
-            buyer: req.user._id,
-          }).save();
+          if (result.success) {
+            // Create order with processing order status
+            const order = new orderModel({
+              products: productsPaid,
+              payment: result,
+              buyer: req.user._id,
+              status: "Processing",
+            }).save();
+
+
+            // Decrementing product count for each product
+            Object.values(cart).forEach(value => {
+              productModel
+                .findByIdAndUpdate(value.productId, { $inc: { quantity: -value.quantity } })
+                .exec();
+            });
+          } else {
+            const order = new orderModel({
+              products: productsPaid,
+              payment: result,
+              buyer: req.user._id,
+            }).save();
+          }
           res.json({ ok: true });
         } else {
-          res.status(500).send(error);
+          return res.status(500).send(error);
         }
       }
     );
