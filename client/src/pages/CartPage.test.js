@@ -202,6 +202,29 @@ describe("CartPage component", () => {
     await waitFor(() => expect(axios.get).toHaveBeenCalledWith("/api/v1/product/braintree/token"));
   });
 
+  // Test 6: Token fetch error handling
+  it("handles Braintree token fetch error and shows error toast", async () => {
+    const consoleSpy = jest.spyOn(console, "log");
+    const tokenError = new Error("Failed to fetch token");
+
+    axios.get.mockImplementation((url) => {
+      if (url.includes("/braintree/token")) {
+        return Promise.reject(tokenError);
+      }
+      return Promise.reject(new Error("Not Found"));
+    });
+
+    useCart.mockReturnValue(mockCartContext(mockCart));
+    await renderCartPage();
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(tokenError);
+      expect(toast.error).toHaveBeenCalledWith("Failed to initialize payment gateway");
+    });
+
+    consoleSpy.mockRestore();
+  });
+
   // Test 6: Display cart count with "items"
   it("displays correct cart item count with 'items'", async () => {
     useCart.mockReturnValue(mockCartContext(cartWithTwoItems));
@@ -360,28 +383,188 @@ describe("CartPage component", () => {
       await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/dashboard/user/orders"));
     });
 
-    // Test 22: Payment button disabled without address
-    it("disables payment button when user has no address", async () => {
-      useAuth.mockReturnValue([{ user: { name: "Test User", address: null }, token: "test-token" }, jest.fn()]);
+  });
+
+  describe("Pairwise Testing: Payment UI Combinations", () => {
+    /*
+     * PAIRWISE TEST MATRIX
+     * Testing combinations of 5 parameters that affect payment UI:
+     * - Auth Token: {null, valid}
+     * - Cart State: {empty, has-items}
+     * - Client Token: {null, valid}
+     * - User Address: {null, valid}
+     * - DropIn Instance: {null, loaded}
+     *
+     * Key behaviors tested:
+     * 1. DropIn Visibility: canShowPayment = clientToken && auth?.token && hasItems
+     * 2. Button Disabled: disabled = loading || !instance || !auth?.user?.address
+     *
+     * 12 test cases cover all pairwise combinations
+     */
+
+    const waitForDropIn = async () => {
+      await waitFor(() => expect(screen.getByTestId("mock-dropin")).toBeInTheDocument());
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    };
+
+    // Test 1: Guest user, empty cart, no tokens
+    // Pairs: (auth:null, cart:empty), (cart:empty, clientToken:null), (address:null, instance:null)
+    it("Test 1: Guest with empty cart - no DropIn shown", async () => {
+      useAuth.mockReturnValue([{ user: null, token: null }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(emptyCart));
+      axios.get.mockResolvedValue({ data: { clientToken: null } });
+
+      await renderCartPage();
+
+      expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
+    });
+
+    // Test 2: Logged in user, empty cart, has all tokens/address
+    // Pairs: (auth:valid, cart:empty), (cart:empty, clientToken:valid), (address:valid, instance:null)
+    it("Test 2: Logged in with empty cart - no DropIn (empty cart blocks)", async () => {
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: "123 Test St" }, token: "test-token" }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(emptyCart));
+      axios.get.mockResolvedValue({ data: { clientToken: "test-client-token" } });
+
+      await renderCartPage();
+
+      expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
+    });
+
+    // Test 3: Happy path - all conditions met, payment ready
+    // Pairs: (auth:valid, cart:has-items), (clientToken:valid, address:valid), (instance:loaded, cart:has-items)
+    it("Test 3: All conditions met - DropIn shown, button enabled", async () => {
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: "123 Test St" }, token: "test-token" }, jest.fn()]);
       useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: "test-client-token" } });
+
       render(<CartPage />);
       await waitForDropIn();
+
+      expect(screen.getByTestId("mock-dropin")).toBeInTheDocument();
+      expect(screen.getByText("Make Payment")).not.toBeDisabled();
+    });
+
+    // Test 4: Logged in, has items, no address (blocks payment)
+    // Pairs: (auth:valid, address:null), (address:null, cart:has-items), (instance:loaded, address:null)
+    it("Test 4: No address - DropIn shown, button disabled", async () => {
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: null }, token: "test-token" }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: "test-client-token" } });
+
+      render(<CartPage />);
+      await waitForDropIn();
+
+      expect(screen.getByTestId("mock-dropin")).toBeInTheDocument();
       expect(screen.getByText("Make Payment")).toBeDisabled();
     });
 
-    // Test 23: DropIn not shown when cart is empty
-    it("does not show payment DropIn when cart is empty", async () => {
-      useCart.mockReturnValue(mockCartContext(emptyCart));
+    // Test 5: Has items, has address, but instance not loaded yet
+    // Pairs: (instance:null, clientToken:valid), (instance:null, auth:valid), (address:valid, instance:null)
+    it("Test 5: Instance not loaded - DropIn shown, button disabled", async () => {
+      // Mock DropIn to NOT call onInstance
+      jest.spyOn(require("braintree-web-drop-in-react"), "default").mockImplementation((props) => {
+        return <div data-testid="mock-dropin">Mock DropIn (no instance)</div>;
+      });
+
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: "123 Test St" }, token: "test-token" }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: "test-client-token" } });
+
+      await act(async () => render(<CartPage />));
+      await waitFor(() => expect(screen.getByTestId("mock-dropin")).toBeInTheDocument());
+
+      expect(screen.getByText("Make Payment")).toBeDisabled();
+    });
+
+    // Test 6: Client token fetch failed, has items and address
+    // Pairs: (clientToken:null, cart:has-items), (clientToken:null, address:valid), (clientToken:null, auth:valid)
+    it("Test 6: Client token null - no DropIn shown", async () => {
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: "123 Test St" }, token: "test-token" }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: null } });
+
       await renderCartPage();
+
       expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
     });
 
-    // Test 24: DropIn not shown when user not authenticated
-    it("does not show payment DropIn when user is not authenticated", async () => {
+    // Test 7: Guest user with items in cart
+    // Pairs: (auth:null, cart:has-items), (auth:null, clientToken:null), (auth:null, instance:null)
+    it("Test 7: Guest with items - no DropIn (no auth blocks)", async () => {
       useAuth.mockReturnValue([{ user: null, token: null }, jest.fn()]);
       useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: null } });
+
       await renderCartPage();
+
       expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
+    });
+
+    // Test 8: Logged in with items, but no token and no address
+    // Pairs: (clientToken:null, address:null), (auth:valid, clientToken:null), (instance:null, cart:has-items)
+    it("Test 8: No client token, no address - no DropIn shown", async () => {
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: null }, token: "test-token" }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: null } });
+
+      await renderCartPage();
+
+      expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
+    });
+
+    // Test 9: Guest, empty cart, but has client token (edge case)
+    // Pairs: (auth:null, clientToken:valid), (cart:empty, address:null), (auth:null, address:null)
+    it("Test 9: Guest, empty cart with token - no DropIn (multiple blocks)", async () => {
+      useAuth.mockReturnValue([{ user: null, token: null }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(emptyCart));
+      axios.get.mockResolvedValue({ data: { clientToken: "test-client-token" } });
+
+      await renderCartPage();
+
+      expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
+    });
+
+    // Test 10: Logged in, empty cart, no client token, no address
+    // Pairs: (cart:empty, address:null), (auth:valid, instance:null), (clientToken:null, instance:null)
+    it("Test 10: Empty cart, no token - no DropIn shown", async () => {
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: null }, token: "test-token" }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(emptyCart));
+      axios.get.mockResolvedValue({ data: { clientToken: null } });
+
+      await renderCartPage();
+
+      expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
+    });
+
+    // Test 11: Guest with items, has client token and instance (but no auth)
+    // Pairs: (auth:null, instance:loaded), (clientToken:valid, cart:has-items), (instance:loaded, clientToken:valid)
+    it("Test 11: Guest with token & instance - no DropIn (auth blocks)", async () => {
+      useAuth.mockReturnValue([{ user: null, token: null }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: "test-client-token" } });
+
+      await renderCartPage();
+
+      expect(screen.queryByTestId("mock-dropin")).not.toBeInTheDocument();
+    });
+
+    // Test 12: Logged in with items, has token, but no address and no instance
+    // Pairs: (address:null, instance:null), (clientToken:valid, address:null), (instance:null, address:null)
+    it("Test 12: No address, no instance - DropIn shown, button disabled", async () => {
+      // Mock DropIn to NOT call onInstance
+      jest.spyOn(require("braintree-web-drop-in-react"), "default").mockImplementation((props) => {
+        return <div data-testid="mock-dropin">Mock DropIn (no instance)</div>;
+      });
+
+      useAuth.mockReturnValue([{ user: { name: "Test User", address: null }, token: "test-token" }, jest.fn()]);
+      useCart.mockReturnValue(mockCartContext(mockCart));
+      axios.get.mockResolvedValue({ data: { clientToken: "test-client-token" } });
+
+      await act(async () => render(<CartPage />));
+      await waitFor(() => expect(screen.getByTestId("mock-dropin")).toBeInTheDocument());
+
+      expect(screen.getByText("Make Payment")).toBeDisabled();
     });
   });
 });

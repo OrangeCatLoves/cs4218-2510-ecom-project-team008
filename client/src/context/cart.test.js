@@ -137,6 +137,17 @@ describe("Cart Context", () => {
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Item does not exist"));
       expect(result.current.cart).toEqual({});
     });
+
+    it("should handle generic API error with custom error message", async () => {
+      localStorage.getItem.mockReturnValue(null);
+      const { result } = renderCartHook();
+
+      axios.get.mockRejectedValue(new Error("Network timeout"));
+      await act(async () => await result.current.addToCart("test-product"));
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Network timeout"));
+      expect(result.current.cart).toEqual({});
+    });
   });
 
   describe("removeFromCart() Function", () => {
