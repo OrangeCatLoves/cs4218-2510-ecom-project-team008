@@ -23,22 +23,22 @@ export const createProductController = async (req, res) => {
     const { name, description, price, category, quantity, shipping } =
       req.fields;
     const { photo } = req.files;
-    //alidation
+    //validation
     switch (true) {
       case !name:
-        return res.status(500).send({ error: "Name is Required" });
+        return res.status(400).send({ error: "Name is Required" });
       case !description:
-        return res.status(500).send({ error: "Description is Required" });
+        return res.status(400).send({ error: "Description is Required" });
       case !price:
-        return res.status(500).send({ error: "Price is Required" });
+        return res.status(400).send({ error: "Price is Required" });
       case !category:
-        return res.status(500).send({ error: "Category is Required" });
+        return res.status(400).send({ error: "Category is Required" });
       case !quantity:
-        return res.status(500).send({ error: "Quantity is Required" });
+        return res.status(400).send({ error: "Quantity is Required" });
       case photo && photo.size > 1000000:
         return res
-          .status(500)
-          .send({ error: "photo is Required and should be less then 1mb" });
+          .status(400)
+          .send({ error: "Photo is required and should be less than 1mb" });
     }
 
     const products = new productModel({ ...req.fields, slug: slugify(name) });
@@ -114,14 +114,14 @@ export const productPhotoController = async (req, res) => {
     if (!req.params.pid || !mongoose.Types.ObjectId.isValid(req.params.pid)) {
       return res.status(400).send({
         success: false,
-        message: "Invalid product ID"
+        message: "Invalid product ID",
       });
     }
     const product = await productModel.findById(req.params.pid).select("photo");
     if (!product) {
       return res.status(404).send({
         success: false,
-        message: "Product not found"
+        message: "Product not found",
       });
     }
     if (product.photo.data) {
@@ -130,7 +130,7 @@ export const productPhotoController = async (req, res) => {
     } else {
       return res.status(404).send({
         success: false,
-        message: "Product photo not found"
+        message: "Product photo not found",
       });
     }
   } catch (error) {
@@ -146,7 +146,22 @@ export const productPhotoController = async (req, res) => {
 //delete controller
 export const deleteProductController = async (req, res) => {
   try {
-    await productModel.findByIdAndDelete(req.params.pid).select("-photo");
+    if (!req.params.pid || !mongoose.Types.ObjectId.isValid(req.params.pid)) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+
+    const product = await productModel.findByIdAndDelete(req.params.pid);
+
+    if (!product) {
+      return res.status(404).send({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
     res.status(200).send({
       success: true,
       message: "Product Deleted successfully",
@@ -161,28 +176,26 @@ export const deleteProductController = async (req, res) => {
   }
 };
 
-//upate producta
+//update product
 export const updateProductController = async (req, res) => {
   try {
     const { name, description, price, category, quantity, shipping } =
       req.fields;
     const { photo } = req.files;
-    //alidation
+    //validation
     switch (true) {
       case !name:
-        return res.status(500).send({ error: "Name is Required" });
+        return res.status(400).send({ error: "Name is Required" });
       case !description:
-        return res.status(500).send({ error: "Description is Required" });
+        return res.status(400).send({ error: "Description is Required" });
       case !price:
-        return res.status(500).send({ error: "Price is Required" });
+        return res.status(400).send({ error: "Price is Required" });
       case !category:
-        return res.status(500).send({ error: "Category is Required" });
+        return res.status(400).send({ error: "Category is Required" });
       case !quantity:
-        return res.status(500).send({ error: "Quantity is Required" });
+        return res.status(400).send({ error: "Quantity is Required" });
       case photo && photo.size > 1000000:
-        return res
-          .status(500)
-          .send({ error: "photo is Required and should be less then 1mb" });
+        return res.status(400).send({ error: "Photo should be less than 1mb" });
     }
 
     const products = await productModel.findByIdAndUpdate(
@@ -190,12 +203,20 @@ export const updateProductController = async (req, res) => {
       { ...req.fields, slug: slugify(name) },
       { new: true }
     );
+
+    if (!products) {
+      return res.status(404).send({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
     if (photo) {
       products.photo.data = fs.readFileSync(photo.path);
       products.photo.contentType = photo.type;
     }
     await products.save();
-    res.status(201).send({
+    res.status(200).send({
       success: true,
       message: "Product Updated Successfully",
       products,
@@ -365,10 +386,10 @@ export const brainTreePaymentController = async (req, res) => {
   try {
     const { nonce, cart } = req.body;
     let total = 0;
-    const productsPaid = []
+    const productsPaid = [];
 
-    Object.values(cart).map(item => {
-      total += item.price * item.quantity
+    Object.values(cart).map((item) => {
+      total += item.price * item.quantity;
       for (let i = 0; i < item.quantity; i++) {
         productsPaid.push(new mongoose.Types.ObjectId(item.productId));
       }
@@ -396,11 +417,12 @@ export const brainTreePaymentController = async (req, res) => {
               status: "Processing",
             }).save();
 
-
             // Decrementing product count for each product
-            Object.values(cart).forEach(value => {
+            Object.values(cart).forEach((value) => {
               productModel
-                .findByIdAndUpdate(value.productId, { $inc: { quantity: -value.quantity } })
+                .findByIdAndUpdate(value.productId, {
+                  $inc: { quantity: -value.quantity },
+                })
                 .exec();
             });
           } else {
