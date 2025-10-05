@@ -187,6 +187,69 @@ describe('Search Page', () => {
             expect(getAllByText(/ADD TO CART/i)).toHaveLength(1);
         });
 
+    it('should show full product description if product description is less than 30 characters', () => {
+      // Arrange
+      const shortDescription = "a".repeat(29);
+      const mockResults = [{
+        ...mockProduct1,
+        description: shortDescription
+      }];
+      useSearch.mockReturnValue([{
+        keyword: "",
+        results: mockResults
+      }])
+
+      // Act
+      const { getByText } = render(
+        <Search/>
+      );
+
+      // Assert
+      expect(getByText(shortDescription + "...", { exact: true })).toBeInTheDocument();
+    });
+
+    it('should show full product description if product description is exactly 30 characters', () => {
+      // Arrange
+      const shortDescription = "a".repeat(30);
+      const mockResults = [{
+        ...mockProduct1,
+        description: shortDescription
+      }];
+      useSearch.mockReturnValue([{
+        keyword: "",
+        results: mockResults
+      }])
+
+      // Act
+      const { getByText } = render(
+        <Search/>
+      );
+
+      // Assert
+      expect(getByText(shortDescription + "...", { exact: true })).toBeInTheDocument();
+    });
+
+    it('should show truncated product description if product description is more than 30 characters', () => {
+      // Arrange
+      const shortDescription = "a".repeat(31);
+      const mockResults = [{
+        ...mockProduct1,
+        description: shortDescription
+      }];
+      useSearch.mockReturnValue([{
+        keyword: "",
+        results: mockResults
+      }])
+
+      // Act
+      const { getByText } = render(
+        <Search/>
+      );
+
+      // Assert
+      expect(getByText(shortDescription.substring(0, 30) + "...", { exact: true })).toBeInTheDocument();
+    });
+
     it('should throw error if results does not resolve correctly', () => {
         // Arrange
         useSearch.mockReturnValue([
