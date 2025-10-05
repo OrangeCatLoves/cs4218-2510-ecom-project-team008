@@ -8,4 +8,4 @@ docs
 .env
 .idea/
 coverage
-.scanner
+.scannerwork
