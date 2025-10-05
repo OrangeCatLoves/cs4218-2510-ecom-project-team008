@@ -31,7 +31,7 @@ const Orders = () => {
             <h1 className="text-center">All Orders</h1>
             {orders?.map((o, i) => {
               return (
-                <div className="border shadow">
+                <div className="border shadow" key={o._id}>
                   <table className="table">
                     <thead>
                       <tr>
@@ -46,11 +46,11 @@ const Orders = () => {
                     <tbody>
                       <tr>
                         <td>{i + 1}</td>
-                        <td>{o?.status}</td>
-                        <td>{o?.buyer?.name}</td>
+                        <td data-testid="order-status">{o?.status}</td>
+                        <td data-testid="order-buyer">{o?.buyer?.name}</td>
                         <td>{moment(o?.createAt).fromNow()}</td>
-                        <td>{o?.payment.success ? "Success" : "Failed"}</td>
-                        <td>{o?.products?.length}</td>
+                        <td data-testid="order-payment-success">{o?.payment.success ? "Success" : "Failed"}</td>
+                        <td data-testid="order-products-count">{o?.products?.length ? o?.products?.length : 0}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -67,9 +67,9 @@ const Orders = () => {
                           />
                         </div>
                         <div className="col-md-8">
-                          <p>{p.name}</p>
-                          <p>{p.description.substring(0, 30)}</p>
-                          <p>Price : {p.price}</p>
+                          <p data-testid="product-name">{p.name}</p>
+                          <p data-testid="product-description">{p.description.substring(0, 30)}</p>
+                          <p data-testid="product-price">Price : {p.price}</p>
                         </div>
                       </div>
                     ))}
