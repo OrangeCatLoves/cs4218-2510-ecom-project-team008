@@ -50,7 +50,7 @@ const Orders = () => {
                         <td data-testid="order-buyer">{o?.buyer?.name}</td>
                         <td>{moment(o?.createAt).fromNow()}</td>
                         <td data-testid="order-payment-success">{o?.payment.success ? "Success" : "Failed"}</td>
-                        <td data-testid="order-products-count">{o?.products?.length}</td>
+                        <td data-testid="order-products-count">{o?.products?.length ? o?.products?.length : 0}</td>
                       </tr>
                     </tbody>
                   </table>
