@@ -47,6 +47,25 @@
 - models/productModel.js
 - config/db.js
 
+### Mao Xiongkai (A0273007M)
+
+**Client Files**
+- pages/user/Orders.js
+- pages/user/Profile.js
+- pages/admin/Users.js
+- components/Form/SearchInput.js
+- context/search.js
+- pages/Search.js
+
+**Server Files**
+- controllers/authController.js
+    - updateProfileController 
+    - getOrdersController
+    - getAllOrdersController
+    - orderStatusController
+    - getAllUsersController(Not in the original testing scope but since pages/admin/Users.js lacks implementation so I decide to finish the feature and test my own code as a show of effort)
+- models/orderModel.js
+
 ## 1. Project Introduction
 
 Virtual Vault is a full-stack MERN (MongoDB, Express.js, React.js, Node.js) e-commerce website, offering seamless connectivity and user-friendly features. The platform provides a robust framework for online shopping. The website is designed to adapt to evolving business needs and can be efficiently extended.
