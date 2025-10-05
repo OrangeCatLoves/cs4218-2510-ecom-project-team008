@@ -594,6 +594,170 @@ describe('updateProfileController', () => {
       }
   );
 
+  it('should return 200 with empty password, name and phone, and non-empty address', async() => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {
+        password: "",
+        name: "",
+        phone: "",
+        address: "Updated Address"
+      }
+    };
+    userModel.findById.mockResolvedValueOnce(mockUser)
+    const updatedUser = {
+      ...mockUser,
+      address: "Updated Address"
+    }
+    userModel.findByIdAndUpdate.mockResolvedValueOnce(updatedUser)
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.send).toHaveBeenCalledWith({
+      success: true,
+      message: "Profile Updated Successfully",
+      updatedUser
+    })
+  });
+
+  it('should return 200 with empty password and address, with non-empty name and phone', async() => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {
+        password: "",
+        name: "Updated Name",
+        phone: "Updated Phone",
+        address: ""
+      }
+    }
+    userModel.findById.mockResolvedValueOnce(mockUser)
+    const updatedUser = {
+      ...mockUser,
+      name: "Updated Name",
+      phone: "Updated Phone"
+    }
+    userModel.findByIdAndUpdate.mockResolvedValueOnce(updatedUser)
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.send).toHaveBeenCalledWith({
+      success: true,
+      message: "Profile Updated Successfully",
+      updatedUser
+    })
+  });
+
+  it('should return 400 with non-empty name, empty address and phone and non-empty password less than 6 characters', async() => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {
+        password: "12345",
+        name: "Updated Name",
+        phone: "",
+        address: ""
+      }
+    }
+    userModel.findById.mockResolvedValueOnce(mockUser)
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.json).toHaveBeenCalledWith({ error: "Passsword is required and 6 character long" });
+  });
+
+  it('should return 400 with empty name, non-empty address and phone and non-empty password less than 6 characters', async() => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {
+        password: "12345",
+        name: "",
+        phone: "Updated Phone",
+        address: "Updated Address"
+      }
+    }
+    userModel.findById.mockResolvedValueOnce(mockUser)
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.json).toHaveBeenCalledWith({ error: "Passsword is required and 6 character long" });
+  });
+
+  it('should return 200 with empty name and address, non-empty phone and non-empty password more than or equals to 6 characters', async() => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {
+        password: "123456",
+        name: "",
+        phone: "Updated Phone",
+        address: ""
+      }
+    }
+    userModel.findById.mockResolvedValueOnce(mockUser);
+    const updatedUser = {
+      ...mockUser,
+      password: "123456",
+      phone: "Updated Phone",
+    };
+    userModel.findByIdAndUpdate.mockResolvedValueOnce(updatedUser);
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.send).toHaveBeenCalledWith({
+      success: true,
+      message: "Profile Updated Successfully",
+      updatedUser
+    })
+  });
+
+  it('should return 200 with empty phone, non-empty name and address and non-empty password more than or equal to 6 characters', async() => {
+    // Arrange
+    const req = {
+      user: {_id: validUserId},
+      body: {
+        password: "123456",
+        name: "Updated Name",
+        phone: "",
+        address: "Updated Address"
+      }
+    }
+    userModel.findById.mockResolvedValueOnce(mockUser);
+    const updatedUser = {
+      ...mockUser,
+      password: "123456",
+      name: "Updated Name",
+      address: "Updated Address"
+    };
+    userModel.findByIdAndUpdate.mockResolvedValueOnce(updatedUser);
+
+    // Act
+    await updateProfileController(req, res);
+
+    // Assert
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.send).toHaveBeenCalledWith({
+      success: true,
+      message: "Profile Updated Successfully",
+      updatedUser
+    })
+  });
+
   it('should return 500 and console log error if error is thrown', async () => {
     // Arrange
     const req = {
