@@ -1,9 +1,11 @@
 # CS4218 Project - Virtual Vault
 
 ## Project Contributions
+
 ### Chan Jia Jun (A0259308X)
 
 **Client Files**
+
 - context/auth.js
 - pages/Auth/Register.js
 - pages/Auth/Login.js
@@ -11,17 +13,19 @@
 - pages/admin/AdminDashboard.js
 
 **Server Files**
+
 - helpers/authHelper.js
 - middleware/authMiddleware.js
 - controllers/authController.js
-    - registerController
-    - loginController
-    - forgotPasswordController
-    - testController
+  - registerController
+  - loginController
+  - forgotPasswordController
+  - testController
 
 ### Low Wei Bin (A0272304N)
 
 **Client Files**
+
 - pages/ProductDetails.js
 - pages/CategoryProduct.js
 - pages/Contact.js
@@ -34,22 +38,24 @@
 - pages/Pagenotfound.js
 
 **Server Files**
+
 - controllers/productController.js
-   - getProductController
-   - getSingleProductController
-   - productPhotoController
-   - productFiltersController
-   - productCountController
-   - productListController
-   - searchProductController
-   - realtedProductController
-   - productCategoryController
+  - getProductController
+  - getSingleProductController
+  - productPhotoController
+  - productFiltersController
+  - productCountController
+  - productListController
+  - searchProductController
+  - realtedProductController
+  - productCategoryController
 - models/productModel.js
 - config/db.js
 
 ### Mao Xiongkai (A0273007M)
 
 **Client Files**
+
 - pages/user/Orders.js
 - pages/user/Profile.js
 - pages/admin/Users.js
@@ -58,13 +64,40 @@
 - pages/Search.js
 
 **Server Files**
+
 - controllers/authController.js
-    - updateProfileController 
-    - getOrdersController
-    - getAllOrdersController
-    - orderStatusController
-    - getAllUsersController **(Not in the original testing scope but since pages/admin/Users.js lacks implementation so I decide to finish the feature and test my own code as a show of effort)**
+  - updateProfileController
+  - getOrdersController
+  - getAllOrdersController
+  - orderStatusController
+  - getAllUsersController **(Not in the original testing scope but since pages/admin/Users.js lacks implementation so I decide to finish the feature and test my own code as a show of effort)**
 - models/orderModel.js
+
+### Chua Yuan Cheng (A0258734U)
+
+**Client Files**
+
+- components/Form/CategoryForm.js
+- pages/admin/CreateCategory.js
+- pages/admin/CreateProduct.js
+- pages/admin/UpdateProduct.js
+- pages/admin/AdminOrders.js
+- pages/admin/Products.js
+- components/Routes/Private.js
+- components/UserMenu.js
+- pages/user/Dashboard.js
+
+**Server Files**
+
+- controllers/categoryController.js
+  - createCategoryController
+  - updateCategoryController
+  - deleteCategoryController
+- controllers/productController.js
+  - createProductController
+  - updateProductController
+  - deleteProductController
+- models/userModel.js
 
 ## 1. Project Introduction
 
