@@ -9,7 +9,7 @@ import { Badge } from "antd";
 import "../styles/Header.css";
 const Header = () => {
   const [auth, setAuth] = useAuth();
-  const [cart] = useCart();
+  const { cart } = useCart();
   const categories = useCategory();
   const handleLogout = () => {
     setAuth({
@@ -123,7 +123,7 @@ const Header = () => {
                 </>
               )}
               <li className="nav-item">
-                <Badge count={cart?.length} showZero>
+                <Badge count={Object.keys(cart || {}).length} showZero>
                   <NavLink to="/cart" className="nav-link">
                     Cart
                   </NavLink>

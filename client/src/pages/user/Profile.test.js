@@ -344,7 +344,7 @@ describe('Update Profile Form', () => {
         // Act
         const { getByText } = render(
             <MemoryRouter>
-            <Profile/>
+              <Profile/>
             </MemoryRouter>
         );
         fireEvent.click(getByText(/UPDATE/i));

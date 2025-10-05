@@ -8,7 +8,6 @@ jest.mock('../context/search', () => ({
 }));
 
 import { useSearch } from "../context/search";
-import {MemoryRouter} from "react-router-dom";
 
 jest.mock('../components/Layout', () => ({title, children}) => {
    return (
