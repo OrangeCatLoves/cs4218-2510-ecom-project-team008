@@ -19,6 +19,34 @@
     - forgotPasswordController
     - testController
 
+### Low Wei Bin (A0272304N)
+
+**Client Files**
+- pages/ProductDetails.js
+- pages/CategoryProduct.js
+- pages/Contact.js
+- pages/Policy.js
+- components/Footer.js
+- components/Header.js
+- components/Layout.js
+- components/Spinner.js
+- pages/About.js
+- pages/Pagenotfound.js
+
+**Server Files**
+- controllers/productController.js
+   - getProductController
+   - getSingleProductController
+   - productPhotoController
+   - productFiltersController
+   - productCountController
+   - productListController
+   - searchProductController
+   - realtedProductController
+   - productCategoryController
+- models/productModel.js
+- config/db.js
+
 ## 1. Project Introduction
 
 Virtual Vault is a full-stack MERN (MongoDB, Express.js, React.js, Node.js) e-commerce website, offering seamless connectivity and user-friendly features. The platform provides a robust framework for online shopping. The website is designed to adapt to evolving business needs and can be efficiently extended.
