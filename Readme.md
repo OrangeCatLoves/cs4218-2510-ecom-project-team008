@@ -63,7 +63,7 @@
     - getOrdersController
     - getAllOrdersController
     - orderStatusController
-    - getAllUsersController(Not in the original testing scope but since pages/admin/Users.js lacks implementation so I decide to finish the feature and test my own code as a show of effort)
+    - getAllUsersController **(Not in the original testing scope but since pages/admin/Users.js lacks implementation so I decide to finish the feature and test my own code as a show of effort)**
 - models/orderModel.js
 
 ## 1. Project Introduction
