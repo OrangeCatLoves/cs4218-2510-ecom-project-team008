@@ -11,7 +11,7 @@ import "../styles/Homepages.css";
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [cart, setCart] = useCart();
+  const { addToCart } = useCart();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [checked, setChecked] = useState([]);
@@ -36,20 +36,45 @@ const HomePage = () => {
     getAllCategory();
     getTotal();
   }, []);
-  //get products
-  const getAllProducts = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
-      setLoading(false);
-      setProducts(data.products);
-    } catch (error) {
-      setLoading(false);
-      console.log(error);
-    }
-  };
 
-  //getTOtal COunt
+  useEffect(() => {
+    let isValid = true;
+    const getAllProducts = async () => {
+      try {
+        setLoading(true);
+        if (checked.length || radio.length) {
+          // TODO: Refactor to GET request with query parameters
+          // Should be: GET /api/v1/product/product-filters?categories=id1,id2&minPrice=0&maxPrice=100
+          // Also update: controllers/productController.js productFiltersController to read req.query
+          // Also update: routes/productRoutes.js to change POST to GET
+          const { data } = await axios.post("/api/v1/product/product-filters", {
+            checked,
+            radio,
+          });
+          if (!isValid) return;
+          setProducts(data?.products);
+        } else {
+          const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
+          if (!isValid) return;
+          setProducts(data.products);
+        }
+        setLoading(false);
+      } catch (error) {
+        if (isValid) {
+          setLoading(false);
+          console.log(error);
+        }
+      }
+    };
+
+    getAllProducts();
+
+    return () => {
+      isValid = false;
+    };
+  }, [checked, radio, page]);
+
+  // Get total count
   const getTotal = async () => {
     try {
       const { data } = await axios.get("/api/v1/product/product-count");
@@ -59,17 +84,27 @@ const HomePage = () => {
     }
   };
 
-  useEffect(() => {
-    if (page === 1) return;
-    loadMore();
-  }, [page]);
   //load more
   const loadMore = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
+      const nextPage = page + 1;
+      if (checked.length || radio.length) {
+        const params = new URLSearchParams();
+        if (checked.length) params.append('categories', checked.join(','));
+        if (radio.length) {
+          params.append('minPrice', radio[0]);
+          params.append('maxPrice', radio[1]);
+        }
+        params.append('page', nextPage);
+        const { data } = await axios.get(`/api/v1/product/product-filters?${params.toString()}`);
+        setProducts([...products, ...data?.products]);
+      } else {
+        const { data } = await axios.get(`/api/v1/product/product-list/${nextPage}`);
+        setProducts([...products, ...data?.products]);
+      }
+      setPage(nextPage);
       setLoading(false);
-      setProducts([...products, ...data?.products]);
     } catch (error) {
       console.log(error);
       setLoading(false);
@@ -86,26 +121,7 @@ const HomePage = () => {
     }
     setChecked(all);
   };
-  useEffect(() => {
-    if (!checked.length || !radio.length) getAllProducts();
-  }, [checked.length, radio.length]);
 
-  useEffect(() => {
-    if (checked.length || radio.length) filterProduct();
-  }, [checked, radio]);
-
-  //get filterd product
-  const filterProduct = async () => {
-    try {
-      const { data } = await axios.post("/api/v1/product/product-filters", {
-        checked,
-        radio,
-      });
-      setProducts(data?.products);
-    } catch (error) {
-      console.log(error);
-    }
-  };
   return (
     <Layout title={"ALL Products - Best offers "}>
       {/* banner image */}
@@ -182,12 +198,7 @@ const HomePage = () => {
                     <button
                       className="btn btn-dark ms-1"
                       onClick={() => {
-                        setCart([...cart, p]);
-                        localStorage.setItem(
-                          "cart",
-                          JSON.stringify([...cart, p])
-                        );
-                        toast.success("Item Added to cart");
+                        addToCart(p.slug);
                       }}
                     >
                       ADD TO CART
@@ -203,7 +214,7 @@ const HomePage = () => {
                 className="btn loadmore"
                 onClick={(e) => {
                   e.preventDefault();
-                  setPage(page + 1);
+                  loadMore();
                 }}
               >
                 {loading ? (

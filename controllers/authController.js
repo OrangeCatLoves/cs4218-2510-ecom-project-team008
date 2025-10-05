@@ -17,6 +17,9 @@ export const registerController = async (req, res) => {
     if (!password) {
       return res.status(400).send({ message: "Password is Required" });
     }
+    if (password && password.length < 6) {
+      return res.status(400).send({ message: "Password must be at least 6 characters" });
+    }
     if (!phone) {
       return res.status(400).send({ message: "Phone number is Required" });
     }
@@ -27,9 +30,9 @@ export const registerController = async (req, res) => {
       return res.status(400).send({ message: "Answer is Required" });
     }
     //check user
-    const exisitingUser = await userModel.findOne({ email });
-    //exisiting user
-    if (exisitingUser) {
+    const existingUser = await userModel.findOne({ email });
+    //existing user
+    if (existingUser) {
       return res.status(200).send({
         success: false,
         message: "Already Register please login",
@@ -157,17 +160,17 @@ export const forgotPasswordController = async (req, res) => {
 //test controller
 export const testController = (req, res) => {
   try {
-    res.send("Protected Routes");
+    res.status(200).send("Protected Routes");
   } catch (error) {
     console.log(error);
-    res.send({ error });
+    res.status(500).send({ error });
   }
 };
 
 //update prfole
 export const updateProfileController = async (req, res) => {
   try {
-    const { name, email, password, address, phone } = req.body;
+    const { name, password, address, phone } = req.body;
     const user = await userModel.findById(req.user._id);
     //password
     if (password && password.length < 6) {
@@ -186,14 +189,14 @@ export const updateProfileController = async (req, res) => {
     );
     res.status(200).send({
       success: true,
-      message: "Profile Updated SUccessfully",
+      message: "Profile Updated Successfully",
       updatedUser,
     });
   } catch (error) {
     console.log(error);
     res.status(400).send({
       success: false,
-      message: "Error WHile Update profile",
+      message: "Error While Update profile",
       error,
     });
   }
@@ -211,7 +214,7 @@ export const getOrdersController = async (req, res) => {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error WHile Geting Orders",
+      message: "Error While Getting Orders",
       error,
     });
   }
@@ -229,7 +232,7 @@ export const getAllOrdersController = async (req, res) => {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error WHile Geting Orders",
+      message: "Error While Getting Orders",
       error,
     });
   }
@@ -250,8 +253,25 @@ export const orderStatusController = async (req, res) => {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "Error While Updateing Order",
+      message: "Error While Updating Order",
       error,
+    });
+  }
+};
+
+// Fetch all users
+export const getAllUsersController = async (req, res) => {
+  try {
+    const users = await userModel
+        .find({})
+        .sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error While Fetching All Users",
+      error
     });
   }
 };
