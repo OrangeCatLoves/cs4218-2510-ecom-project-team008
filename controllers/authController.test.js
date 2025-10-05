@@ -837,7 +837,7 @@ describe('orderStatusController', () => {
     jest.clearAllMocks();
   });
 
-  const statuses = ["Not Process", "Processing", "Shipped", "delivered", "cancel"]
+  const statuses = ["Not Process", "Processing", "Shipped", "delivered", "cancel"];
   test.each(statuses)(
       'should update order to each valid state properly', async (status) => {
         // Arrange
