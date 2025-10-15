@@ -3,33 +3,39 @@ import slugify from "slugify";
 export const createCategoryController = async (req, res) => {
   try {
     const { name } = req.body;
-    if (!name) {
+    if (!name || name.trim() === "") {
       return res
-        .status(401)
+        .status(400)
         .send({ success: false, message: "Name is required" });
     }
-    const existingCategory = await categoryModel.findOne({ name });
-    if (existingCategory) {
-      return res.status(500).send({
+
+    const allCategories = await categoryModel.find({});
+    const isDuplicate = allCategories.some(
+      (cat) => cat.name.toLowerCase() === name.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      return res.status(409).send({
         success: false,
-        message: "Category Already Exists",
+        message: "Category already exists",
       });
     }
+
     const category = await new categoryModel({
-      name,
-      slug: slugify(name),
+      name: name.trim(),
+      slug: slugify(name.trim()),
     }).save();
     res.status(201).send({
       success: true,
-      message: "new category created",
+      message: "New category created",
       category,
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
       success: false,
-      error, // fixed typo in original controller (errro instead of error)
-      message: "Error in Category", 
+      error,
+      message: "Error in category",
     });
   }
 };
@@ -40,22 +46,42 @@ export const updateCategoryController = async (req, res) => {
     const { name } = req.body;
     const { id } = req.params;
 
-    const existingCategory = await categoryModel.findOne({ name });
-    if (existingCategory) {
-      return res.status(500).send({
+    if (!name || name.trim() === "") {
+      return res
+        .status(400)
+        .send({ success: false, message: "Name is required" });
+    }
+
+    const allCategories = await categoryModel.find({});
+    const isDuplicate = allCategories.some(
+      (cat) =>
+        cat.name.toLowerCase() === name.trim().toLowerCase() &&
+        cat._id.toString() !== id
+    );
+
+    if (isDuplicate) {
+      return res.status(409).send({
         success: false,
-        message: "Category Already Exists",
+        message: "Category already exists",
       });
     }
 
     const category = await categoryModel.findByIdAndUpdate(
       id,
-      { name, slug: slugify(name) },
+      { name: name.trim(), slug: slugify(name.trim()) },
       { new: true }
     );
+
+    if (!category) {
+      return res.status(404).send({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
     res.status(200).send({
       success: true,
-      message: "Category Updated Successfully",
+      message: "Category updated successfully",
       category,
     });
   } catch (error) {
@@ -101,7 +127,7 @@ export const singleCategoryController = async (req, res) => {
 
     res.status(200).send({
       success: true,
-      message: "Get Single Category Successfully",
+      message: "Get single category successfully",
       category,
     });
   } catch (error) {
@@ -109,25 +135,33 @@ export const singleCategoryController = async (req, res) => {
     res.status(500).send({
       success: false,
       error,
-      message: "Error While getting Single Category",
+      message: "Error while getting single category",
     });
   }
 };
 
 //delete category
-export const deleteCategoryCOntroller = async (req, res) => {
+export const deleteCategoryController = async (req, res) => {
   try {
     const { id } = req.params;
-    await categoryModel.findByIdAndDelete(id);
+    const category = await categoryModel.findByIdAndDelete(id);
+
+    if (!category) {
+      return res.status(404).send({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
     res.status(200).send({
       success: true,
-      message: "Category Deleted Successfully",
+      message: "Category deleted successfully",
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
       success: false,
-      message: "error while deleting category",
+      message: "Error while deleting category",
       error,
     });
   }

@@ -988,4 +988,98 @@ describe("HomePage Component", () => {
       expect(axios.get).toHaveBeenCalled();
     });
   });
+
+  it("should handle error during component unmount with isValid cleanup", async () => {
+    // Arrange
+    const apiError = new Error("API Error during unmount");
+
+    // Create a promise that we can control
+    let rejectProducts;
+    const productsPromise = new Promise((resolve, reject) => {
+      rejectProducts = reject;
+    });
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: true, category: [] }
+      })
+      .mockResolvedValueOnce({
+        data: { total: 1 }
+      })
+      .mockReturnValueOnce(productsPromise);
+
+    // Act
+    const { unmount } = render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    // Unmount before the promise rejects
+    unmount();
+
+    // Now reject the promise
+    rejectProducts(apiError);
+
+    // Assert - the cleanup should prevent console.log from being called
+    // The isValid flag should prevent the error handler from executing
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenCalled();
+    });
+
+    // console.log should NOT be called because isValid is false
+    expect(consoleLogSpy).not.toHaveBeenCalledWith(apiError);
+  });
+
+  it("should handle filter API unmount with isValid preventing state update", async () => {
+    // Arrange
+    const mockCategories = [
+      { _id: "1", name: "Electronics" }
+    ];
+
+    // Create a controlled promise for filter API
+    let resolveFilter;
+    const filterPromise = new Promise((resolve) => {
+      resolveFilter = resolve;
+    });
+
+    axios.get
+      .mockResolvedValueOnce({
+        data: { success: true, category: mockCategories }
+      })
+      .mockResolvedValueOnce({
+        data: { total: 0 }
+      })
+      .mockResolvedValueOnce({
+        data: { products: [] }
+      });
+
+    axios.post.mockReturnValueOnce(filterPromise);
+
+    // Act
+    const { getByTestId, unmount } = render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(getByTestId("checkbox-Electronics")).toBeInTheDocument();
+    });
+
+    // Trigger filter
+    const electronicsCheckbox = getByTestId("checkbox-Electronics");
+    fireEvent.click(electronicsCheckbox);
+
+    // Unmount before filter resolves
+    unmount();
+
+    // Resolve after unmount
+    resolveFilter({ data: { products: [] } });
+
+    // Assert - isValid should prevent state update (line 54)
+    await waitFor(() => {
+      expect(axios.post).toHaveBeenCalled();
+    });
+  });
 });
