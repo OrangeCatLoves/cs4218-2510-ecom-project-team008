@@ -7,8 +7,8 @@ module.exports = {
 
   // which test to run
   testMatch: [
-    // "<rootDir>/controllers/*.test.js",
-    // "<rootDir>/models/*.test.js",
+    "<rootDir>/controllers/*.test.js",
+    "<rootDir>/models/*.test.js",
     "<rootDir>/integration-tests/*.test.js"],
 
   // jest code coverage
