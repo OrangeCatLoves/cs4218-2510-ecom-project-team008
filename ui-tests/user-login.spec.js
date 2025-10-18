@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { normalUsers } from "../config/populateDb.js";
+import {normalUsers, populate} from "../config/populateDb.js";
+import {clearAndRepopulateDB} from "../config/db";
 
 test.describe.configure({ mode: 'serial' });
 
@@ -11,6 +12,7 @@ const validUserNotInDb = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await clearAndRepopulateDB()
   await page.goto('./login');
 });
 

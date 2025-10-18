@@ -1,19 +1,16 @@
 module.exports = {
   // display name
-  displayName: "backend",
+  displayName: "integration",
 
   // when testing backend
   testEnvironment: "node",
 
   // which test to run
-  testMatch: [
-    "<rootDir>/controllers/*.test.js",
-    "<rootDir>/models/*.test.js"
-  ],
+  testMatch: ["<rootDir>/integration-tests/*.test.js"],
 
   // jest code coverage
   collectCoverage: true,
-  collectCoverageFrom: ["controllers/**", "models/**"],
+  collectCoverageFrom: ["integration-tests/*.test.js"],
   coverageThreshold: {
     global: {
       lines: 80,
