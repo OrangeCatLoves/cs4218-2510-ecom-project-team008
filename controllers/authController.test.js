@@ -331,7 +331,13 @@ describe('forgotPasswordController', () => {
 
   test('should return 404 when unable to find user with given email and answer', async () => {
     // Arrange
-    const req = mockRequest;
+    const req = {
+      body: {
+        email: "email_not_In_db",
+        answer: mockAnswer,
+        newPassword: "new_password"
+      },
+    };
     userModel.findOne.mockResolvedValue(null);
 
     // Act
@@ -344,7 +350,13 @@ describe('forgotPasswordController', () => {
 
   test('should return 200 and reset password successfully when user is found', async () => {
     // Arrange
-    const req = mockRequest;
+    const req = {
+      body: {
+        email: mockEmail,
+        answer: mockAnswer,
+        newPassword: "new_password"
+      },
+    };
     const mockUser = { _id: "mock_id" };
     userModel.findOne.mockResolvedValue(mockUser);
     hashPassword.mockResolvedValue("hashedPassword");
@@ -362,7 +374,13 @@ describe('forgotPasswordController', () => {
 
   test('should return 500 when an error is thrown', async () => {
     // Arrange
-    const req = mockRequest;
+    const req = {
+      body: {
+        email: mockEmail,
+        answer: mockAnswer,
+        newPassword: "new_password"
+      }
+    };
     const errorThrown = new Error("Internal Server Error");
     userModel.findOne.mockRejectedValue(errorThrown);
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});

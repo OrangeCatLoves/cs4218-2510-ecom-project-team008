@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import connectDB, {clearAndRepopulateDB, closeDB} from "../config/db";
+import {normalUsers} from "../config/populateDb";
 
-test.describe.configure({ mode: 'parallel' });
+test.describe.configure({ mode: 'serial' });
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./register');
@@ -17,6 +19,10 @@ const validUser = {
 }
 
 test.describe('Register new user', () => {
+  test.afterEach(async () => {
+    await clearAndRepopulateDB();
+  });
+
   test('should display all headers, input fields and button', async ({ page }) => {
     await expect(page.getByText('REGISTER FORM')).toBeVisible();
     await expect(page.getByPlaceholder('Enter Your Name')).toBeVisible();
@@ -191,25 +197,14 @@ test.describe('Register new user', () => {
 
   test.describe('User already exists', () => {
     test('should show error when trying to register with existing email', async ({ page }) => {
-      // First registration
-      await page.getByPlaceholder('Enter Your Name').fill(validUser.name);
-      await page.getByPlaceholder('Enter Your Email').fill("existing_email@gmail.com");
-      await page.getByPlaceholder('Enter Your Password').fill(validUser.password);
-      await page.getByPlaceholder('Enter Your Phone').fill(validUser.phone);
-      await page.getByPlaceholder('Enter Your Address').fill(validUser.address);
-      await page.getByPlaceholder('Enter Your DOB').fill(validUser.dob);
-      await page.getByPlaceholder('What is Your Favorite sports').fill(validUser.sport);
-      await page.getByRole('button', { name: 'REGISTER' }).click();
-
-      // Second registration
       await page.goto('/register');
-      await page.getByPlaceholder('Enter Your Name').fill(validUser.name);
-      await page.getByPlaceholder('Enter Your Email').fill("existing_email@gmail.com");
-      await page.getByPlaceholder('Enter Your Password').fill(validUser.password);
-      await page.getByPlaceholder('Enter Your Phone').fill(validUser.phone);
-      await page.getByPlaceholder('Enter Your Address').fill(validUser.address);
-      await page.getByPlaceholder('Enter Your DOB').fill(validUser.dob);
-      await page.getByPlaceholder('What is Your Favorite sports').fill(validUser.sport);
+      await page.getByPlaceholder('Enter Your Name').fill(normalUsers[0].name);
+      await page.getByPlaceholder('Enter Your Email').fill(normalUsers[0].email);
+      await page.getByPlaceholder('Enter Your Password').fill(normalUsers[0].password);
+      await page.getByPlaceholder('Enter Your Phone').fill(normalUsers[0].phone);
+      await page.getByPlaceholder('Enter Your Address').fill(normalUsers[0].address);
+      await page.getByPlaceholder('Enter Your DOB').fill("2025-01-22");
+      await page.getByPlaceholder('What is Your Favorite sports').fill(normalUsers[0].answer);
       await page.getByRole('button', { name: 'REGISTER' }).click();
 
       await expect(page.getByText('Already Register please login')).toBeVisible();
