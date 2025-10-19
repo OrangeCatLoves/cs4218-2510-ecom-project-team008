@@ -1,13 +1,13 @@
 import React from 'react';
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import Orders from "../../pages/user/Orders";
-import {AuthProvider} from "../../context/auth";
-import {CartProvider} from "../../context/cart";
-import {SearchProvider} from "../../context/search";
+import Orders from "../../../pages/user/Orders";
+import {AuthProvider} from "../../../context/auth";
+import {CartProvider} from "../../../context/cart";
+import {SearchProvider} from "../../../context/search";
 import axios from "axios";
-import {MemoryRouter, Route, Router, Routes} from "react-router-dom";
-import PrivateRoute from "../../components/Routes/Private";
+import {MemoryRouter, Route, Routes} from "react-router-dom";
+import PrivateRoute from "../../../components/Routes/Private";
 
 jest.mock('axios');
 

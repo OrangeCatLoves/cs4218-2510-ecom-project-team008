@@ -1104,7 +1104,7 @@ describe('getAllUsersController', () => {
     jest.clearAllMocks();
   });
 
-  it('should return users json when find successful', async() => {
+  it('should return user json when find successful', async() => {
     // Arrange
     const req = {};
     const mockResults = [mockUser];

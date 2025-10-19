@@ -68,7 +68,7 @@ describe('Admin Users Page', () => {
         });
     });
 
-    it('should render user and other users in the database correctly(if any)', async() => {
+    it('should render user and other user in the database correctly(if any)', async() => {
         // Arrange
         for(let i = 1; i <= 10; i++) {
             const newUser = {
@@ -105,7 +105,7 @@ describe('Admin Users Page', () => {
         });
     });
 
-    it('should throw error if users do not resolve correctly', async() => {
+    it('should throw error if user do not resolve correctly', async() => {
         // Arrange
         axios.get.mockResolvedValue(null);
         const consoleSpy = jest.spyOn(console, 'log');

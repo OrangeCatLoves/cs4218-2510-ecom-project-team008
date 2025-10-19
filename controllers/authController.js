@@ -259,7 +259,7 @@ export const orderStatusController = async (req, res) => {
   }
 };
 
-// Fetch all users
+// Fetch all user
 export const getAllUsersController = async (req, res) => {
   try {
     const users = await userModel
