@@ -96,7 +96,7 @@ describe("Product Controller Tests", () => {
       expect(mockRes.send).toHaveBeenCalledWith({
         success: true,
         counTotal: 2,
-        message: "ALlProducts ",
+        message: "AllProducts ",
         products: mockProducts,
       });
     });

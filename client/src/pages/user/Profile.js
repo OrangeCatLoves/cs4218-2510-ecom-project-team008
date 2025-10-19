@@ -66,7 +66,8 @@ const Profile = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="form-control"
-                    id="exampleInputEmail1"
+                    data-testid="exampleInputName1"
+                    id="exampleInputName1"
                     placeholder="Enter Your Name"
                     autoFocus
                   />
@@ -77,6 +78,7 @@ const Profile = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="form-control"
+                    data-testid="exampleInputEmail1"
                     id="exampleInputEmail1"
                     placeholder="Enter Your Email "
                     disabled
@@ -88,6 +90,7 @@ const Profile = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="form-control"
+                    data-testid="exampleInputPassword1"
                     id="exampleInputPassword1"
                     placeholder="Enter Your Password"
                   />
@@ -98,7 +101,8 @@ const Profile = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="form-control"
-                    id="exampleInputEmail1"
+                    data-testid="exampleInputPhone1"
+                    id="exampleInputPhone1"
                     placeholder="Enter Your Phone"
                   />
                 </div>
@@ -108,7 +112,8 @@ const Profile = () => {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     className="form-control"
-                    id="exampleInputEmail1"
+                    data-testid="exampleInputAddress1"
+                    id="exampleInputAddress1"
                     placeholder="Enter Your Address"
                   />
                 </div>
