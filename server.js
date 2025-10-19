@@ -1,4 +1,4 @@
-import app from 'express';
+import app from ./app';
 import dotenv from "dotenv";
 
 
