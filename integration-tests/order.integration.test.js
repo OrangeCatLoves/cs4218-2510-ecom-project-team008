@@ -144,7 +144,7 @@ describe('Integration between backend Order System with MongoDB Database', () =>
 
       // Assert
       expect(res.statusCode).toBe(401);
-      expect(res.body.message).toEqual("Error in requireSignIn middleware");
+      expect(res.body.message).toEqual("Unauthorized: Invalid or missing token");
       expect(res.body.success).toBeFalsy();
     });
 
@@ -345,7 +345,7 @@ describe('Integration between backend Order System with MongoDB Database', () =>
 
       // Assert
       expect(res.statusCode).toBe(401);
-      expect(res.body.message).toEqual("Error in requireSignIn middleware");
+      expect(res.body.message).toEqual("Unauthorized: Invalid or missing token");
       expect(res.body.success).toBeFalsy();
     });
 
@@ -521,7 +521,7 @@ describe('Integration between backend Order System with MongoDB Database', () =>
 
       // Assert
       expect(res.statusCode).toBe(401);
-      expect(res.body.message).toEqual("Error in requireSignIn middleware");
+      expect(res.body.message).toEqual("Unauthorized: Invalid or missing token");
       expect(res.body.success).toBeFalsy();
     });
 
