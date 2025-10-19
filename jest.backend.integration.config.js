@@ -6,11 +6,14 @@ module.exports = {
   testEnvironment: "node",
 
   // which test to run
-  testMatch: ["<rootDir>/integration-tests/*.test.js"],
+  testMatch: [
+    "<rootDir>/integration-tests/*.test.js",
+    "<rootDir>/client/src/integration-tests/*.test.js"
+  ],
 
   // jest code coverage
   collectCoverage: true,
-  collectCoverageFrom: ["integration-tests/*.test.js"],
+  collectCoverageFrom: ["integration-tests/*.test.js", "client/src/integration-tests/*.test.js"],
   coverageThreshold: {
     global: {
       lines: 80,
