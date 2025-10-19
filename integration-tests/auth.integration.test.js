@@ -3,7 +3,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 import app from "../app";
 import userModel from "../models/userModel";
-import jwt, {JsonWebTokenError} from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 jest.mock('../config/db', () => jest.fn());
