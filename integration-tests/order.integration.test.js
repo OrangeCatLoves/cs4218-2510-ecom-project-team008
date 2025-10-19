@@ -9,7 +9,6 @@ import userModel from "../models/userModel";
 import categoryModel from "../models/categoryModel";
 import jwt from "jsonwebtoken";
 import app from "../app";
-import {expect} from "@playwright/test";
 
 describe('Integration between backend Order System with MongoDB Database', () => {
   let mongodbServer;
