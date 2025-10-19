@@ -8,7 +8,7 @@ describe("User Model (Unit)", () => {
   });
 
   // schema shape
-  it("exposes a schema with timestamps enabled and model name 'users'", () => {
+  it("exposes a schema with timestamps enabled and model name 'user'", () => {
     expect(User.modelName).toBe("users");
     expect(User.schema?.options?.timestamps).toBe(true);
   });

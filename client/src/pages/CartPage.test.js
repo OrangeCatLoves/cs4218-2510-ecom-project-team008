@@ -301,8 +301,8 @@ describe("CartPage component", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/dashboard/user/profile");
     });
 
-    // Test 17: Login button for guest users
-    it("shows login button for guest users and navigates to login on click", async () => {
+    // Test 17: Login button for guest user
+    it("shows login button for guest user and navigates to login on click", async () => {
       useAuth.mockReturnValue([{ user: null, token: null }, jest.fn()]);
       useCart.mockReturnValue(mockCartContext(mockCart));
       await renderCartPage();

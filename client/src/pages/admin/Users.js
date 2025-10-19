@@ -33,10 +33,10 @@ const Users = () => {
             <div className="grid grid-cols-6 gap-2">
               {users.map((user) => (
                 <div key={user._id}>
-                  <h2>{`${user.name}${user.role === 1 ? "(Admin)" : ""}`}</h2>
-                  <p>{`Email: ${user.email}`}</p>
-                  <p>{`Phone: ${user.phone}`}</p>
-                  <p>{`Address: ${user.address}`}</p>
+                  <h2 data-testid="username">{`${user.name}${user.role === 1 ? "(Admin)" : ""}`}</h2>
+                  <p data-testid="email">{`Email: ${user.email}`}</p>
+                  <p data-testid="phone">{`Phone: ${user.phone}`}</p>
+                  <p data-testid="address">{`Address: ${user.address}`}</p>
                 </div>
               ))}
             </div>

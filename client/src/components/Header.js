@@ -55,7 +55,7 @@ const Header = () => {
                   Categories
                 </Link>
                 <ul className="dropdown-menu">
-                  <li key="all-categories">
+                  <li key="all-categories" key="all-categories">
                     <Link className="dropdown-item" to={"/categories"}>
                       All Categories
                     </Link>
