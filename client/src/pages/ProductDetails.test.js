@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import axios from 'axios';
 import ProductDetails from './ProductDetails';
+import { useCart } from '../context/cart';
 
 // Mock dependencies
 jest.mock('axios');
@@ -23,6 +24,11 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockUseNavigate(),
 }));
 
+// Mock useCart hook
+jest.mock('../context/cart', () => ({
+  useCart: jest.fn(),
+}));
+
 describe('ProductDetails Component', () => {
   const mockNavigate = jest.fn();
   
@@ -30,7 +36,16 @@ describe('ProductDetails Component', () => {
     // Clear all mocks
     jest.clearAllMocks();
     mockUseNavigate.mockReturnValue(mockNavigate);
-    
+
+    // Mock useCart hook
+    useCart.mockReturnValue({
+      cart: {},
+      addToCart: jest.fn(),
+      removeFromCart: jest.fn(),
+      updateQuantity: jest.fn(),
+      clearCart: jest.fn(),
+    });
+
     // Suppress console output
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});

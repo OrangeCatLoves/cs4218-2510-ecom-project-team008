@@ -72,7 +72,8 @@ describe.only('Admin Menu Component', () => {
         'Create Category',
         'Create Product',
         'Products',
-        'Orders'
+        'Orders',
+        'Users'
       ]);
     });
   })
