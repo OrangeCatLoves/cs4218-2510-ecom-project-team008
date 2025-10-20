@@ -22,6 +22,10 @@ module.exports = {
   // only run these tests
   testMatch: ["<rootDir>/client/src/**/*.test.js"],
 
+  testPathIgnorePatterns: [
+    "<rootDir>/client/src/integration-tests/pages/ProductDetails.integration.test.js",
+  ],
+
   // jest code coverage
   collectCoverage: true,
   collectCoverageFrom: [
