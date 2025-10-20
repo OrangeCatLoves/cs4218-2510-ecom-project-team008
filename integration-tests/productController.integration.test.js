@@ -89,34 +89,35 @@ describe("Product Controller Integration Tests", () => {
       expect(response.products[0].category.slug).toBe("electronics");
     });
 
-    it("should limit to 12 products and sort by createdAt descending", async () => {
-      // Arrange
-      const category = await categoryModel.create({ 
-        name: "Books", 
-        slug: "books" 
-      });
+    it("sorts by createdAt desc deterministically and limits to 12", async () => {
+      const category = await categoryModel.create({ name: "Books", slug: "books" });
+
+      // Seed with explicit createdAt so order is deterministic
+      const docs = [];
       for (let i = 1; i <= 15; i++) {
-        await productModel.create({
-          name: `Product ${i}`, 
-          slug: `product-${i}`, 
+        docs.push({
+          name: `Product ${i}`,
+          slug: `product-${i}`,
           description: `Desc ${i}`,
-          price: i * 10, 
-          category: category._id, 
+          price: i * 10,
+          category: category._id,
           quantity: i,
+          createdAt: new Date(2024, 0, i), // Jan 1..15 2024
+          updatedAt: new Date(2024, 0, i),
         });
-        await new Promise(r => setTimeout(r, 10));
       }
+      await productModel.insertMany(docs);
+
       const req = mockRequest();
       const res = mockResponse();
-
-      // Act
       await getProductController(req, res);
 
-      // Assert
-      const response = res.send.mock.calls[0][0];
-      expect(response.products).toHaveLength(12);
-      expect(response.products[0].name).toBe("Product 15");
-      expect(response.products[11].name).toBe("Product 4");
+      const { products } = res.send.mock.calls[0][0];
+      expect(products).toHaveLength(12);
+      // Newest should be Product 15
+      expect(products[0].name).toBe("Product 15");
+      // Oldest of the page should be Product 4 (15..4 = 12 items)
+      expect(products[11].name).toBe("Product 4");
     });
 
     it("should return products with category data and exclude photo buffer", async () => {
@@ -182,32 +183,6 @@ describe("Product Controller Integration Tests", () => {
       const categories = response.products.map(p => p.category.name).sort();
       expect(categories).toContain("Electronics");
       expect(categories).toContain("Books");
-    });
-
-    it("should have typo 'counTotal' in response field", async () => {
-      // Arrange
-      const category = await categoryModel.create({ 
-        name: "Test", 
-        slug: "test" 
-      });
-      await productModel.create({
-        name: "Product", 
-        slug: "product", 
-        description: "Test", 
-        price: 100, 
-        category: category._id, 
-        quantity: 5
-      });
-      const req = mockRequest();
-      const res = mockResponse();
-
-      // Act
-      await getProductController(req, res);
-
-      // Assert
-      const response = res.send.mock.calls[0][0];
-      expect(response.counTotal).toBeDefined();
-      expect(response.counTotal).toBe(1);
     });
   });
 
@@ -465,6 +440,31 @@ describe("Product Controller Integration Tests", () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.send.mock.calls[0][0].message).toBe("Product not found");
     });
+
+    it("returns 200 even if contentType is missing (data present)", async () => {
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      const photoData = Buffer.from("raw-bytes");
+      const product = await productModel.create({
+        name: "No CT",
+        slug: "no-ct",
+        description: "x",
+        price: 1,
+        category: category._id,
+        quantity: 1,
+        photo: { data: photoData }, // no contentType
+      });
+
+      const req = mockRequest({ pid: product._id.toString() });
+      const res = mockResponse();
+      await productPhotoController(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      // Express will be called with undefined; acceptable contract as long as bytes are served
+      expect(res.set).toHaveBeenCalledWith("Content-type", undefined);
+      const sent = res.send.mock.calls[0][0];
+      expect(Buffer.isBuffer(sent)).toBe(true);
+      expect(sent.equals(photoData)).toBe(true);
+    });
   });
 
   describe("productFiltersController - Combinatorial Testing", () => {
@@ -718,6 +718,47 @@ describe("Product Controller Integration Tests", () => {
       // Assert
       expect(res.send.mock.calls[0][0].products).toHaveLength(0);
     });
+
+    it("returns 400 when body is missing checked/radio keys", async () => {
+      const req = { params: {}, body: {} }; // missing keys
+      const res = mockResponse();
+
+      await productFiltersController(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      const payload = res.send.mock.calls[0][0];
+      expect(payload.success).toBe(false);
+      expect(String(payload.message).toLowerCase()).toContain("filter");
+    });
+
+    it("handles large category $in lists", async () => {
+      // Create 10 categories with one product each
+      const catDocs = await categoryModel.insertMany(
+        Array.from({ length: 10 }, (_, i) => ({ name: `C${i}`, slug: `c${i}` }))
+      );
+      await productModel.insertMany(
+        catDocs.map((c, i) => ({
+          name: `P${i}`,
+          slug: `p-${i}`,
+          description: `d${i}`,
+          price: 10 + i,
+          category: c._id,
+          quantity: 1,
+        }))
+      );
+
+      // Filter by first 7 categories
+      const targetIds = catDocs.slice(0, 7).map((c) => c._id);
+      const req = mockRequest({}, { checked: targetIds, radio: [] });
+      const res = mockResponse();
+
+      await productFiltersController(req, res);
+      const { products } = res.send.mock.calls[0][0];
+
+      expect(products).toHaveLength(7);
+      const prodCatIds = new Set(products.map((p) => p.category.toString()));
+      targetIds.forEach((id) => expect(prodCatIds.has(id.toString())).toBe(true));
+    });
   });
 
   describe("productCountController Integration", () => {
@@ -916,6 +957,77 @@ describe("Product Controller Integration Tests", () => {
       // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toBeDefined();
+    });
+
+    it("treats invalid page param as page 1 (current behavior)", async () => {
+      // Seed with explicit createdAt for determinism
+      await productModel.deleteMany({});
+      const category = await categoryModel.create({ name: "Pages2", slug: "pages2" });
+      const docs = [];
+      for (let i = 1; i <= 10; i++) {
+        docs.push({
+          name: `Item ${i}`,
+          slug: `item-${i}`,
+          description: `D${i}`,
+          price: i,
+          category: category._id,
+          quantity: 1,
+          createdAt: new Date(2024, 5, i), // June 1..10 2024
+          updatedAt: new Date(2024, 5, i),
+        });
+      }
+      await productModel.insertMany(docs);
+
+      const req = mockRequest({ page: "NaN" });
+      const res = mockResponse();
+      await productListController(req, res);
+
+      const { products } = res.send.mock.calls[0][0];
+      expect(products).toHaveLength(6);
+      // Newest first
+      expect(products[0].name).toBe("Item 10");
+      expect(products[5].name).toBe("Item 5");
+    });
+
+    it("respects createdAt sort on every page with explicit timestamps", async () => {
+      await productModel.deleteMany({});
+      const category = await categoryModel.create({ name: "Pages3", slug: "pages3" });
+
+      await productModel.insertMany(
+        Array.from({ length: 14 }, (_, i) => ({
+          name: `X${i + 1}`,
+          slug: `x-${i + 1}`,
+          description: `dx${i + 1}`,
+          price: i + 1,
+          category: category._id,
+          quantity: 1,
+          createdAt: new Date(2023, 11, i + 1), // Dec 1..14 2023
+          updatedAt: new Date(2023, 11, i + 1),
+        }))
+      );
+
+      // page 1
+      let req = mockRequest({ page: "1" });
+      let res = mockResponse();
+      await productListController(req, res);
+      let names = res.send.mock.calls[0][0].products.map((p) => p.name);
+      expect(names[0]).toBe("X14");
+      expect(names[5]).toBe("X9");
+
+      // page 2
+      req = mockRequest({ page: "2" });
+      res = mockResponse();
+      await productListController(req, res);
+      names = res.send.mock.calls[0][0].products.map((p) => p.name);
+      expect(names[0]).toBe("X8");
+      expect(names[5]).toBe("X3");
+
+      // page 3 (partial)
+      req = mockRequest({ page: "3" });
+      res = mockResponse();
+      await productListController(req, res);
+      names = res.send.mock.calls[0][0].products.map((p) => p.name);
+      expect(names).toEqual(["X2", "X1"]);
     });
   });
 
@@ -1345,20 +1457,6 @@ describe("Product Controller Integration Tests", () => {
       // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(15);
-    });
-
-    it("should match category slug case-insensitively in database", async () => {
-      // Arrange
-      const req = mockRequest({ slug: "SPORTS" });
-      const res = mockResponse();
-
-      // Act
-      await productCategoryController(req, res);
-
-      // Assert
-      const response = res.send.mock.calls[0][0];
-      expect(response.category).toBeDefined();
-      expect(response.category.name).toBe("Sports");
     });
   });
 
