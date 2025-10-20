@@ -10,7 +10,7 @@ jest.mock('../config/db', () => jest.fn());
 
 const hashPassword = async (password) => await bcrypt.hash(password, 10);
 
-describe('Integration between Auth Controller with database', () => {
+describe('Integration between Auth Controller and database', () => {
   let mongodbServer;
   var userInDb;
   const userInDbUnhashedPassword = "mock_password";
@@ -34,7 +34,7 @@ describe('Integration between Auth Controller with database', () => {
       await collection.deleteMany();
     }
     userInDb = {
-      name: "mock_nname",
+      name: "mock_name",
       email: "mock_email@gmail.com",
       password: await hashPassword(userInDbUnhashedPassword),
       phone: "mock_phone",
@@ -42,6 +42,7 @@ describe('Integration between Auth Controller with database', () => {
       answer: "mock_answer",
       role: 0
     };
+
     await userModel.create(userInDb);
   });
 
@@ -401,6 +402,189 @@ describe('Integration between Auth Controller with database', () => {
       expect(res.statusCode).toBe(401);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe("Error in admin middleware");
+
+      jest.restoreAllMocks();
+    });
+  });
+
+  describe("getAllUsersController", () => {
+    test('GET /api/v1/auth/all-users should return 200 and all users in database for authenticated admin', async() => {
+      // Arrange
+      const unHashedAdminPassword = "Mock Admin Password1";
+      const admin = await userModel.create({
+        name: "Mock Admin1",
+        email: "mock_admin_email1@gmail.com",
+        password: await hashPassword(unHashedAdminPassword),
+        phone: "Mock Admin Phone1",
+        address: "Mock Admin Address1",
+        answer: "Mock Admin Answer1",
+        role: 1
+      });
+
+      const unHashedUserPassword = "Mock Password1"
+      const user1 = await  userModel.create({
+        name: "Mock Name1",
+        email: "mock_email1@gmail.com",
+        password: await hashPassword(unHashedUserPassword),
+        phone: "Mock Phone1",
+        address: "Mock Address1",
+        answer: "Mock Answer1",
+        role: 0
+      });
+
+      const jwtToken = jwt.sign({
+        _id: admin._id
+      }, process.env.JWT_SECRET || "mockKey",
+        {
+          expiresIn: '5m'
+        });
+
+      // Act
+      const res = await request(app)
+        .get('/api/v1/auth/all-users')
+        .set('Authorization', jwtToken);
+
+      // Assert
+      expect(res.statusCode).toBe(200);
+
+      // There should be 3 users, 1 admin, 1 temp users, 1 db user created in beforeEach hook
+      expect(res.body).toHaveLength(3);
+
+      expect(res.body[0].name).toEqual(user1.name);
+      expect(res.body[0].email).toEqual(user1.email);
+      expect(await bcrypt.compare(unHashedUserPassword, res.body[0].password)).toBeTruthy();
+      expect(res.body[0].phone).toEqual(user1.phone);
+      expect(res.body[0].address).toEqual(user1.address);
+      expect(res.body[0].answer).toEqual(user1.answer);
+      expect(res.body[0].role).toBe(0);
+
+      expect(res.body[1].name).toEqual(admin.name);
+      expect(res.body[1].email).toEqual(admin.email);
+      expect(await bcrypt.compare(unHashedAdminPassword, res.body[1].password)).toBeTruthy();
+      expect(res.body[1].phone).toEqual(admin.phone);
+      expect(res.body[1].address).toEqual(admin.address);
+      expect(res.body[1].answer).toEqual(admin.answer);
+      expect(res.body[1].role).toBe(1);
+
+      expect(res.body[2].name).toEqual(userInDb.name);
+      expect(res.body[2].email).toEqual(userInDb.email);
+      expect(await bcrypt.compare(userInDbUnhashedPassword, res.body[2].password)).toBeTruthy();
+      expect(res.body[2].phone).toEqual(userInDb.phone);
+      expect(res.body[2].address).toEqual(userInDb.address);
+      expect(res.body[2].answer).toEqual(userInDb.answer);
+      expect(res.body[2].role).toBuserInDb;
+    });
+
+    test('GET /api/v1/auth/all-users should at least return admin user itself when no other user is in the database', async() => {
+      // Arrange
+      await userModel.deleteMany();
+      const unHashedAdminPassword = "Mock Admin Password1";
+      const admin = await userModel.create({
+        name: "Mock Admin1",
+        email: "mock_admin_email1@gmail.com",
+        password: await hashPassword(unHashedAdminPassword),
+        phone: "Mock Admin Phone1",
+        address: "Mock Admin Address1",
+        answer: "Mock Admin Answer1",
+        role: 1
+      });
+      const jwtToken = jwt.sign({
+          _id: admin._id
+        }, process.env.JWT_SECRET || "mockKey",
+        {
+          expiresIn: '5m'
+        });
+
+      // Act
+      const res = await request(app)
+        .get('/api/v1/auth/all-users')
+        .set('Authorization', jwtToken);
+
+      // Assert
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveLength(1);
+    });
+
+    test('GET /api/v1/auth/all-users should return 401 for non-authenticated user', async() => {
+      // Arrange
+      // No need setup because testing endpoint without token
+
+      // Act
+      const res = await request(app)
+        .get('/api/v1/auth/all-users');
+
+      // Assert
+      expect(res.statusCode).toBe(401);
+      expect(res.body.success).toBeFalsy();
+      expect(res.body.message).toEqual("Unauthorized: Invalid or missing token");
+    });
+
+    test('GET /api/v1/auth/all-users should return 401 for authenticated user who is not admin', async() => {
+      // Arrange
+      const unHashedUserPassword = "Mock Password1"
+      const user1 = await  userModel.create({
+        name: "Mock Name1",
+        email: "mock_email1@gmail.com",
+        password: await hashPassword(unHashedUserPassword),
+        phone: "Mock Phone1",
+        address: "Mock Address1",
+        answer: "Mock Answer1",
+        role: 0
+      });
+
+      const jwtToken = jwt.sign({
+          _id: user1._id
+        }, process.env.JWT_SECRET || "mockKey",
+        {
+          expiresIn: '5m'
+        });
+
+      // Act
+      const res = await request(app)
+        .get('/api/v1/auth/all-users')
+        .set('Authorization', jwtToken);
+
+      // Assert
+      expect(res.statusCode).toBe(401);
+      expect(res.body.success).toBeFalsy();
+      expect(res.body.message).toEqual("UnAuthorized Access");
+    });
+
+    test('GET /api/v1/auth/all-users should return 500 and console log error when error occurs', async() => {
+      // Arrange
+      const unHashedAdminPassword = "Mock Admin Password1";
+      const admin = await userModel.create({
+        name: "Mock Admin1",
+        email: "mock_admin_email1@gmail.com",
+        password: await hashPassword(unHashedAdminPassword),
+        phone: "Mock Admin Phone1",
+        address: "Mock Admin Address1",
+        answer: "Mock Admin Answer1",
+        role: 1
+      });
+      const jwtToken = jwt.sign({
+        _id: admin._id
+      }, process.env.JWT_SECRET || "mockKey",
+        {
+          expiresIn: "5m"
+        });
+      const error = new Error("An Error Occurred.");
+      jest.spyOn(userModel, "find").mockImplementationOnce(() => {
+        throw error;
+      });
+      const consoleSpy = jest.spyOn(console, 'log')
+        .mockImplementation(() => {});
+
+      // Act
+      const res = await request(app)
+        .get('/api/v1/auth/all-users')
+        .set('Authorization', jwtToken);
+
+      // Assert
+      expect(res.statusCode).toBe(500);
+      expect(res.body.success).toBeFalsy();
+      expect(res.body.message).toEqual("Error While Fetching All Users");
+      expect(consoleSpy).toHaveBeenCalledWith(error);
 
       jest.restoreAllMocks();
     });
