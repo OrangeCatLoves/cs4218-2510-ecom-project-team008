@@ -25,6 +25,7 @@ const SearchInput = () => {
           className="form-control me-2"
           type="search"
           placeholder="Search"
+          data-testid="SearchInput"
           aria-label="Search"
           value={values.keyword}
           onChange={(e) => setValues({ ...values, keyword: e.target.value })}
