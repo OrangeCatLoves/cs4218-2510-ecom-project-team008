@@ -5,24 +5,10 @@ const orderSchema = new mongoose.Schema(
     products: {
       type: [{ type: mongoose.ObjectId, ref: "Products" }],
       required: true,
-      validate: {
-        validator: function (v) {
-          return Array.isArray(v) && v.length > 0;
-        },
-        message: "Products array must have at least one item",
-      },
     },
     payment: {
-      errors: {},
-      params: {},
-      message: {
-        type: String,
-        required: true,
-      },
-      success: {
-        type: Boolean,
-        required: true,
-      },
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
     },
     buyer: {
       type: mongoose.ObjectId,

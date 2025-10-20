@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import Layout from "./../components/Layout";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { useCart } from "../context/cart";
 import "../styles/ProductDetailsStyles.css";
 
 const ProductDetails = () => {
   const params = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState({});
   const [relatedProducts, setRelatedProducts] = useState([]);
 
@@ -64,7 +66,12 @@ const ProductDetails = () => {
             })}
           </h6>
           <h6>Category : {product?.category?.name}</h6>
-          <button class="btn btn-secondary ms-1">ADD TO CART</button>
+          <button
+            className="btn btn-secondary ms-1"
+            onClick={() => addToCart(product.slug)}
+          >
+            ADD TO CART
+          </button>
         </div>
       </div>
       <hr />

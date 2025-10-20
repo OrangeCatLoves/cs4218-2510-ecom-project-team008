@@ -371,7 +371,7 @@ export const braintreeTokenController = async (req, res) => {
   try {
     gateway.clientToken.generate({}, function (err, response) {
       if (err) {
-        return res.status(500).send(err);
+        return res.status(500).send({ message: err.message });
       } else {
         res.send(response);
       }
@@ -434,7 +434,7 @@ export const brainTreePaymentController = async (req, res) => {
           }
           res.json({ ok: true });
         } else {
-          return res.status(500).send(error);
+          return res.status(500).send({ message: error.message });
         }
       }
     );
