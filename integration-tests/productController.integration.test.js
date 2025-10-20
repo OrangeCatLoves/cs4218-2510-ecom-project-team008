@@ -51,117 +51,302 @@ describe("Product Controller Integration Tests", () => {
 
   describe("getProductController Integration", () => {
     it("should retrieve products with populated category from database", async () => {
-      const category = await categoryModel.create({ name: "Electronics", slug: "electronics" });
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Electronics", 
+        slug: "electronics" 
+      });
       await productModel.create([
-        { name: "Laptop", slug: "laptop", description: "High-end", price: 1000, category: category._id, quantity: 10 },
-        { name: "Phone", slug: "phone", description: "Smartphone", price: 500, category: category._id, quantity: 20 },
+        { 
+          name: "Laptop", 
+          slug: "laptop", 
+          description: "High-end", 
+          price: 1000, 
+          category: category._id, 
+          quantity: 10 
+        },
+        { 
+          name: "Phone", 
+          slug: "phone", 
+          description: "Smartphone", 
+          price: 500, 
+          category: category._id, 
+          quantity: 20 
+        },
       ]);
-
       const req = mockRequest();
       const res = mockResponse();
+
+      // Act
       await getProductController(req, res);
 
+      // Assert
       expect(res.status).toHaveBeenCalledWith(200);
       const response = res.send.mock.calls[0][0];
       expect(response.success).toBe(true);
       expect(response.products).toHaveLength(2);
-      // Verify category population (integration with categoryModel)
       expect(response.products[0].category.name).toBe("Electronics");
       expect(response.products[0].category.slug).toBe("electronics");
     });
 
     it("should limit to 12 products and sort by createdAt descending", async () => {
-      const category = await categoryModel.create({ name: "Books", slug: "books" });
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Books", 
+        slug: "books" 
+      });
       for (let i = 1; i <= 15; i++) {
         await productModel.create({
-          name: `Product ${i}`, slug: `product-${i}`, description: `Desc ${i}`,
-          price: i * 10, category: category._id, quantity: i,
+          name: `Product ${i}`, 
+          slug: `product-${i}`, 
+          description: `Desc ${i}`,
+          price: i * 10, 
+          category: category._id, 
+          quantity: i,
         });
         await new Promise(r => setTimeout(r, 10));
       }
-
       const req = mockRequest();
       const res = mockResponse();
+
+      // Act
       await getProductController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(12);
       expect(response.products[0].name).toBe("Product 15");
       expect(response.products[11].name).toBe("Product 4");
     });
 
-    it("BUG REPORT: Response field typo 'counTotal' should be 'countTotal'", async () => {
-      /**
-       * BUG IDENTIFIED
-       * Location: controllers/productController.js, line ~87
-       * Issue: Response object has typo 'counTotal' instead of 'countTotal'
-       * Severity: Low - Typo in API response field name
-       * Impact: API inconsistency, potential confusion for frontend developers
-       * Expected: { success: true, countTotal: X, message: "...", products: [...] }
-       * Actual: { success: true, counTotal: X, message: "...", products: [...] }
-       * Fix Required: Change 'counTotal' to 'countTotal' for consistent naming
-       */
-      const category = await categoryModel.create({ name: "Test", slug: "test" });
-      await productModel.create({
-        name: "Product", slug: "product", description: "Test", 
-        price: 100, category: category._id, quantity: 5
+    it("should return products with category data and exclude photo buffer", async () => {
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Test", 
+        slug: "test" 
       });
-
+      const photoData = Buffer.from("large photo data");
+      await productModel.create({
+        name: "Product", 
+        slug: "product", 
+        description: "Test", 
+        price: 100, 
+        category: category._id, 
+        quantity: 5,
+        photo: { data: photoData, contentType: "image/jpeg" }
+      });
       const req = mockRequest();
       const res = mockResponse();
+
+      // Act
       await getProductController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
-      // Current buggy behavior
+      const product = response.products[0];
+      expect(product.name).toBe("Product");
+      expect(product.category).toBeDefined();
+      expect(product.photo?.data).toBeUndefined();
+    });
+
+    it("should return empty array when no products exist in database", async () => {
+      // Arrange
+      const req = mockRequest();
+      const res = mockResponse();
+
+      // Act
+      await getProductController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.success).toBe(true);
+      expect(response.products).toHaveLength(0);
+    });
+
+    it("should populate category data for products from multiple categories", async () => {
+      // Arrange
+      const cat1 = await categoryModel.create({ name: "Electronics", slug: "electronics" });
+      const cat2 = await categoryModel.create({ name: "Books", slug: "books" });
+      await productModel.create([
+        { name: "Laptop", slug: "laptop", description: "Tech", price: 1000, category: cat1._id, quantity: 5 },
+        { name: "Novel", slug: "novel", description: "Fiction", price: 20, category: cat2._id, quantity: 10 },
+      ]);
+      const req = mockRequest();
+      const res = mockResponse();
+
+      // Act
+      await getProductController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      const categories = response.products.map(p => p.category.name).sort();
+      expect(categories).toContain("Electronics");
+      expect(categories).toContain("Books");
+    });
+
+    it("should have typo 'counTotal' in response field", async () => {
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Test", 
+        slug: "test" 
+      });
+      await productModel.create({
+        name: "Product", 
+        slug: "product", 
+        description: "Test", 
+        price: 100, 
+        category: category._id, 
+        quantity: 5
+      });
+      const req = mockRequest();
+      const res = mockResponse();
+
+      // Act
+      await getProductController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
       expect(response.counTotal).toBeDefined();
       expect(response.counTotal).toBe(1);
-      // After fix, should be:
-      // expect(response.countTotal).toBe(1);
     });
   });
 
   describe("getSingleProductController Integration", () => {
     it("should retrieve single product with populated category via slug lookup", async () => {
-      const category = await categoryModel.create({ name: "Furniture", slug: "furniture" });
-      await productModel.create({
-        name: "Chair", slug: "wooden-chair", description: "Comfortable",
-        price: 150, category: category._id, quantity: 5
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Furniture", 
+        slug: "furniture" 
       });
-
+      await productModel.create({
+        name: "Chair", 
+        slug: "wooden-chair", 
+        description: "Comfortable",
+        price: 150, 
+        category: category._id, 
+        quantity: 5
+      });
       const req = mockRequest({ slug: "wooden-chair" });
       const res = mockResponse();
+
+      // Act
       await getSingleProductController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.success).toBe(true);
       expect(response.product.name).toBe("Chair");
-      // Verify category integration
       expect(response.product.category.name).toBe("Furniture");
+      expect(response.product.category._id.toString()).toBe(category._id.toString());
+    });
+
+    it("should return single product with category data and exclude photo buffer", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      const photoData = Buffer.from("photo data");
+      await productModel.create({
+        name: "Product",
+        slug: "test-product",
+        description: "Test",
+        price: 100,
+        category: category._id,
+        quantity: 5,
+        photo: { data: photoData, contentType: "image/png" }
+      });
+      const req = mockRequest({ slug: "test-product" });
+      const res = mockResponse();
+
+      // Act
+      await getSingleProductController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      const product = response.product;
+      expect(product.name).toBe("Product");
+      expect(product.category).toBeDefined();
+      expect(product.photo?.data).toBeUndefined();
     });
 
     it("should return null for non-existent slug", async () => {
+      // Arrange
       const req = mockRequest({ slug: "non-existent" });
       const res = mockResponse();
+
+      // Act
       await getSingleProductController(req, res);
 
+      // Assert
+      expect(res.send.mock.calls[0][0].product).toBeNull();
+    });
+
+    it("should handle slug with special characters", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      await productModel.create({
+        name: "Special Product",
+        slug: "special-product-2024",
+        description: "Test",
+        price: 99,
+        category: category._id,
+        quantity: 3
+      });
+      const req = mockRequest({ slug: "special-product-2024" });
+      const res = mockResponse();
+
+      // Act
+      await getSingleProductController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.product.name).toBe("Special Product");
+    });
+
+    it("should perform case-sensitive slug matching", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      await productModel.create({
+        name: "Product",
+        slug: "test-slug",
+        description: "Test",
+        price: 50,
+        category: category._id,
+        quantity: 1
+      });
+      const req = mockRequest({ slug: "TEST-SLUG" });
+      const res = mockResponse();
+
+      // Act
+      await getSingleProductController(req, res);
+
+      // Assert
       expect(res.send.mock.calls[0][0].product).toBeNull();
     });
   });
 
   describe("productPhotoController Integration", () => {
     it("should retrieve photo from database and set correct content type", async () => {
-      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Test", 
+        slug: "test" 
+      });
       const photoData = Buffer.from("fake image data");
       const product = await productModel.create({
-        name: "Product", slug: "product", description: "Test", price: 200,
-        category: category._id, quantity: 5,
+        name: "Product", 
+        slug: "product", 
+        description: "Test", 
+        price: 200,
+        category: category._id, 
+        quantity: 5,
         photo: { data: photoData, contentType: "image/jpeg" }
       });
-
       const req = mockRequest({ pid: product._id.toString() });
       const res = mockResponse();
+
+      // Act
       await productPhotoController(req, res);
 
+      // Assert
       expect(res.set).toHaveBeenCalledWith("Content-type", "image/jpeg");
       expect(res.status).toHaveBeenCalledWith(200);
       const sentData = res.send.mock.calls[0][0];
@@ -169,28 +354,116 @@ describe("Product Controller Integration Tests", () => {
       expect(sentData.toString()).toBe(photoData.toString());
     });
 
-    it("should validate ObjectId before database query", async () => {
-      const req = mockRequest({ pid: "invalid-id" });
+    it("should handle different image content types correctly", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      const photoData = Buffer.from("png image data");
+      const product = await productModel.create({
+        name: "Product",
+        slug: "product",
+        description: "Test",
+        price: 150,
+        category: category._id,
+        quantity: 3,
+        photo: { data: photoData, contentType: "image/png" }
+      });
+      const req = mockRequest({ pid: product._id.toString() });
       const res = mockResponse();
+
+      // Act
       await productPhotoController(req, res);
 
+      // Assert
+      expect(res.set).toHaveBeenCalledWith("Content-type", "image/png");
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("should reject invalid ObjectId before database query", async () => {
+      // Arrange
+      const req = mockRequest({ pid: "invalid-id" });
+      const res = mockResponse();
+
+      // Act
+      await productPhotoController(req, res);
+
+      // Assert
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.send.mock.calls[0][0].message).toBe("Invalid product ID");
     });
 
-    it("should handle missing photo data in database", async () => {
-      const category = await categoryModel.create({ name: "Test", slug: "test" });
-      const product = await productModel.create({
-        name: "No Photo", slug: "no-photo", description: "Missing", 
-        price: 100, category: category._id, quantity: 1
-      });
-
-      const req = mockRequest({ pid: product._id.toString() });
+    it("should reject empty string as product ID", async () => {
+      // Arrange
+      const req = mockRequest({ pid: "" });
       const res = mockResponse();
+
+      // Act
       await productPhotoController(req, res);
 
+      // Assert
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.send.mock.calls[0][0].message).toBe("Invalid product ID");
+    });
+
+    it("should return 404 when photo data is missing in database", async () => {
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Test", 
+        slug: "test" 
+      });
+      const product = await productModel.create({
+        name: "No Photo", 
+        slug: "no-photo", 
+        description: "Missing", 
+        price: 100, 
+        category: category._id, 
+        quantity: 1
+      });
+      const req = mockRequest({ pid: product._id.toString() });
+      const res = mockResponse();
+
+      // Act
+      await productPhotoController(req, res);
+
+      // Assert
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.send.mock.calls[0][0].message).toBe("Product photo not found");
+    });
+
+    it("should return 404 when product exists but photo data is empty", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      const product = await productModel.create({
+        name: "Empty Photo",
+        slug: "empty-photo",
+        description: "Test",
+        price: 75,
+        category: category._id,
+        quantity: 2,
+        photo: { data: null, contentType: "image/jpeg" }
+      });
+      const req = mockRequest({ pid: product._id.toString() });
+      const res = mockResponse();
+
+      // Act
+      await productPhotoController(req, res);
+
+      // Assert
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.send.mock.calls[0][0].message).toBe("Product photo not found");
+    });
+
+    it("should return 404 for valid ObjectId with non-existent product", async () => {
+      // Arrange
+      const nonExistentId = new mongoose.Types.ObjectId();
+      const req = mockRequest({ pid: nonExistentId.toString() });
+      const res = mockResponse();
+
+      // Act
+      await productPhotoController(req, res);
+
+      // Assert
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.send.mock.calls[0][0].message).toBe("Product not found");
     });
   });
 
@@ -198,9 +471,18 @@ describe("Product Controller Integration Tests", () => {
     let cat1, cat2, cat3;
 
     beforeEach(async () => {
-      cat1 = await categoryModel.create({ name: "Electronics", slug: "electronics" });
-      cat2 = await categoryModel.create({ name: "Books", slug: "books" });
-      cat3 = await categoryModel.create({ name: "Clothing", slug: "clothing" });
+      cat1 = await categoryModel.create({ 
+        name: "Electronics", 
+        slug: "electronics" 
+      });
+      cat2 = await categoryModel.create({ 
+        name: "Books", 
+        slug: "books" 
+      });
+      cat3 = await categoryModel.create({ 
+        name: "Clothing", 
+        slug: "clothing" 
+      });
 
       await productModel.create([
         { name: "Laptop", slug: "laptop", description: "Expensive", price: 1500, category: cat1._id, quantity: 5 },
@@ -213,169 +495,436 @@ describe("Product Controller Integration Tests", () => {
       ]);
     });
 
-    it("Combo: Category filter only (single)", async () => {
+    it("should filter products by single category", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [cat1._id], radio: [] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(3);
       expect(response.products.every(p => p.category.toString() === cat1._id.toString())).toBe(true);
     });
 
-    it("Combo: Category filter (multiple categories)", async () => {
+    it("should filter products by multiple categories", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [cat1._id, cat2._id], radio: [] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
       expect(res.send.mock.calls[0][0].products).toHaveLength(5);
     });
 
-    it("Combo: Price filter only", async () => {
-      const req = mockRequest({}, { checked: [], radio: [50, 100] });
+    it("should filter products by all three categories", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [cat1._id, cat2._id, cat3._id], radio: [] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
+      expect(res.send.mock.calls[0][0].products).toHaveLength(7);
+    });
+
+    it("should filter products by price range only", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [], radio: [50, 100] });
+      const res = mockResponse();
+
+      // Act
+      await productFiltersController(req, res);
+
+      // Assert
       const response = res.send.mock.calls[0][0];
-      expect(response.products).toHaveLength(2); // Textbook (80), Jeans (60)
+      expect(response.products).toHaveLength(2);
       expect(response.products.every(p => p.price >= 50 && p.price <= 100)).toBe(true);
     });
 
-    it("Combo: Category + Price (matching results)", async () => {
+    it("should filter products by category and price with matching results", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [cat1._id], radio: [400, 600] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(1);
       expect(response.products[0].name).toBe("Phone");
     });
 
-    it("Combo: Category + Price (no matching results)", async () => {
+    it("should return empty array when category and price filters have no matches", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [cat2._id], radio: [100, 200] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
       expect(res.send.mock.calls[0][0].products).toHaveLength(0);
     });
 
-    it("Combo: Multiple categories + Price range", async () => {
+    it("should filter by multiple categories and price range with matches", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [cat2._id, cat3._id], radio: [20, 30] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
-      expect(response.products).toHaveLength(2); // Novel (20), T-Shirt (25)
+      expect(response.products).toHaveLength(2);
+      expect(response.products.some(p => p.name === "Novel")).toBe(true);
+      expect(response.products.some(p => p.name === "T-Shirt")).toBe(true);
     });
 
-    it("Combo: No filters (returns all products)", async () => {
-      const req = mockRequest({}, { checked: [], radio: [] });
+    it("should filter by multiple categories and narrow price range", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [cat1._id, cat3._id], radio: [50, 70] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products).toHaveLength(1);
+      expect(response.products[0].name).toBe("Jeans");
+    });
+
+    it("should return all products when no filters are applied", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [], radio: [] });
+      const res = mockResponse();
+
+      // Act
+      await productFiltersController(req, res);
+
+      // Assert
       expect(res.send.mock.calls[0][0].products).toHaveLength(7);
     });
 
-    it("Boundary: Price at exact lower bound (inclusive)", async () => {
+    it("should include products at exact lower price bound", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [], radio: [500, 1000] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(1);
       expect(response.products[0].price).toBe(500);
     });
 
-    it("Boundary: Price starting at zero", async () => {
+    it("should filter products with price starting at zero", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [], radio: [0, 50] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
-      expect(res.send.mock.calls[0][0].products).toHaveLength(2); // Novel (20), T-Shirt (25)
+      // Assert
+      expect(res.send.mock.calls[0][0].products).toHaveLength(2);
     });
 
-    it("Boundary: Price at exact upper bound (inclusive)", async () => {
+    it("should include products at exact upper price bound", async () => {
+      // Arrange
       const req = mockRequest({}, { checked: [], radio: [1000, 1500] });
       const res = mockResponse();
+
+      // Act
       await productFiltersController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(1);
       expect(response.products[0].price).toBe(1500);
+    });
+
+    it("should exclude products just below lower price bound", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [], radio: [21, 100] });
+      const res = mockResponse();
+
+      // Act
+      await productFiltersController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products.every(p => p.price >= 21)).toBe(true);
+      expect(response.products.some(p => p.name === "Novel")).toBe(false);
+    });
+
+    it("should exclude products just above upper price bound", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [], radio: [0, 499] });
+      const res = mockResponse();
+
+      // Act
+      await productFiltersController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products.every(p => p.price <= 499)).toBe(true);
+      expect(response.products.some(p => p.name === "Phone")).toBe(false);
+    });
+
+    it("should handle very wide price range", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [], radio: [0, 10000] });
+      const res = mockResponse();
+
+      // Act
+      await productFiltersController(req, res);
+
+      // Assert
+      expect(res.send.mock.calls[0][0].products).toHaveLength(7);
+    });
+
+    it("should handle very narrow price range with no matches", async () => {
+      // Arrange
+      const req = mockRequest({}, { checked: [], radio: [21, 24] });
+      const res = mockResponse();
+
+      // Act
+      await productFiltersController(req, res);
+
+      // Assert
+      expect(res.send.mock.calls[0][0].products).toHaveLength(0);
+    });
+
+    it("should filter by non-existent category ID", async () => {
+      // Arrange
+      const fakeId = new mongoose.Types.ObjectId();
+      const req = mockRequest({}, { checked: [fakeId], radio: [] });
+      const res = mockResponse();
+
+      // Act
+      await productFiltersController(req, res);
+
+      // Assert
+      expect(res.send.mock.calls[0][0].products).toHaveLength(0);
     });
   });
 
   describe("productCountController Integration", () => {
     it("should count all products in database", async () => {
-      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Test", 
+        slug: "test" 
+      });
       await productModel.create([
         { name: "P1", slug: "p1", description: "D1", price: 10, category: category._id, quantity: 1 },
         { name: "P2", slug: "p2", description: "D2", price: 20, category: category._id, quantity: 1 },
         { name: "P3", slug: "p3", description: "D3", price: 30, category: category._id, quantity: 1 },
       ]);
-
       const req = mockRequest();
       const res = mockResponse();
+
+      // Act
       await productCountController(req, res);
 
+      // Assert
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.send.mock.calls[0][0].total).toBe(3);
     });
 
-    it("should return 0 for empty database", async () => {
+    it("should return zero for empty database", async () => {
+      // Arrange
       const req = mockRequest();
       const res = mockResponse();
+
+      // Act
       await productCountController(req, res);
 
+      // Assert
       expect(res.send.mock.calls[0][0].total).toBe(0);
+    });
+
+    it("should count products across multiple categories", async () => {
+      // Arrange
+      const cat1 = await categoryModel.create({ name: "Cat1", slug: "cat1" });
+      const cat2 = await categoryModel.create({ name: "Cat2", slug: "cat2" });
+      await productModel.create([
+        { name: "P1", slug: "p1", description: "D1", price: 10, category: cat1._id, quantity: 1 },
+        { name: "P2", slug: "p2", description: "D2", price: 20, category: cat2._id, quantity: 1 },
+        { name: "P3", slug: "p3", description: "D3", price: 30, category: cat1._id, quantity: 1 },
+        { name: "P4", slug: "p4", description: "D4", price: 40, category: cat2._id, quantity: 1 },
+      ]);
+      const req = mockRequest();
+      const res = mockResponse();
+
+      // Act
+      await productCountController(req, res);
+
+      // Assert
+      expect(res.send.mock.calls[0][0].total).toBe(4);
+    });
+
+    it("should count large number of products efficiently", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      const products = [];
+      for (let i = 1; i <= 100; i++) {
+        products.push({
+          name: `Product${i}`,
+          slug: `product-${i}`,
+          description: `Desc${i}`,
+          price: i * 10,
+          category: category._id,
+          quantity: i
+        });
+      }
+      await productModel.create(products);
+      const req = mockRequest();
+      const res = mockResponse();
+
+      // Act
+      await productCountController(req, res);
+
+      // Assert
+      expect(res.send.mock.calls[0][0].total).toBe(100);
     });
   });
 
   describe("productListController - Pagination Integration", () => {
     beforeEach(async () => {
-      const category = await categoryModel.create({ name: "Pages", slug: "pages" });
+      const category = await categoryModel.create({ 
+        name: "Pages", 
+        slug: "pages" 
+      });
       for (let i = 1; i <= 20; i++) {
         await productModel.create({
-          name: `Product ${i}`, slug: `prod-${i}`, description: `Desc ${i}`,
-          price: i * 10, category: category._id, quantity: 5
+          name: `Product ${i}`, 
+          slug: `prod-${i}`, 
+          description: `Desc ${i}`,
+          price: i * 10, 
+          category: category._id, 
+          quantity: 5
         });
         await new Promise(r => setTimeout(r, 5));
       }
     });
 
-    it("should paginate with 6 products per page (page 1)", async () => {
+    it("should return 6 products for first page sorted by newest", async () => {
+      // Arrange
       const req = mockRequest({ page: "1" });
       const res = mockResponse();
+
+      // Act
       await productListController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(6);
       expect(response.products[0].name).toBe("Product 20");
     });
 
-    it("should skip correctly for page 2", async () => {
+    it("should skip correctly for second page", async () => {
+      // Arrange
       const req = mockRequest({ page: "2" });
       const res = mockResponse();
+
+      // Act
       await productListController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(6);
       expect(response.products[0].name).toBe("Product 14");
       expect(response.products[5].name).toBe("Product 9");
     });
 
-    it("should return empty array for page beyond data", async () => {
-      const req = mockRequest({ page: "10" });
+    it("should return partial results for last page", async () => {
+      // Arrange
+      const req = mockRequest({ page: "4" });
       const res = mockResponse();
+
+      // Act
       await productListController(req, res);
 
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products).toHaveLength(2);
+      expect(response.products[0].name).toBe("Product 2");
+      expect(response.products[1].name).toBe("Product 1");
+    });
+
+    it("should return empty array for page beyond available data", async () => {
+      // Arrange
+      const req = mockRequest({ page: "10" });
+      const res = mockResponse();
+
+      // Act
+      await productListController(req, res);
+
+      // Assert
       expect(res.send.mock.calls[0][0].products).toHaveLength(0);
+    });
+
+    it("should return paginated products excluding photo buffer data", async () => {
+      // Arrange
+      const req = mockRequest({ page: "1" });
+      const res = mockResponse();
+
+      // Act
+      await productListController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      const product = response.products[0];
+      expect(product.name).toBeDefined();
+      expect(product.photo?.data).toBeUndefined();
+    });
+
+    it("should default to page 1 when page parameter is missing", async () => {
+      // Arrange
+      const req = mockRequest({});
+      const res = mockResponse();
+
+      // Act
+      await productListController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products).toHaveLength(6);
+      expect(response.products[0].name).toBe("Product 20");
+    });
+
+    it("should handle invalid page number gracefully", async () => {
+      // Arrange
+      const req = mockRequest({ page: "invalid" });
+      const res = mockResponse();
+
+      // Act
+      await productListController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products).toBeDefined();
     });
   });
 
   describe("searchProductController Integration", () => {
     beforeEach(async () => {
-      const category = await categoryModel.create({ name: "Search", slug: "search" });
+      const category = await categoryModel.create({ 
+        name: "Search", 
+        slug: "search" 
+      });
       await productModel.create([
         { name: "Gaming Laptop", slug: "gaming-laptop", description: "High performance gaming", price: 2000, category: category._id, quantity: 3 },
         { name: "Office Laptop", slug: "office-laptop", description: "Business productivity", price: 1000, category: category._id, quantity: 5 },
@@ -384,32 +933,156 @@ describe("Product Controller Integration Tests", () => {
       ]);
     });
 
-    it("should search by name using regex (case-insensitive)", async () => {
+    it("should search products by name using case-insensitive regex", async () => {
+      // Arrange
       const req = mockRequest({ keyword: "laptop" });
       const res = mockResponse();
+
+      // Act
       await searchProductController(req, res);
 
+      // Assert
       const results = res.json.mock.calls[0][0];
       expect(results).toHaveLength(2);
       expect(results.some(p => p.name === "Gaming Laptop")).toBe(true);
       expect(results.some(p => p.name === "Office Laptop")).toBe(true);
     });
 
-    it("should search by description using regex", async () => {
-      const req = mockRequest({ keyword: "gaming" });
+    it("should search products by uppercase keyword", async () => {
+      // Arrange
+      const req = mockRequest({ keyword: "LAPTOP" });
       const res = mockResponse();
+
+      // Act
       await searchProductController(req, res);
 
+      // Assert
       const results = res.json.mock.calls[0][0];
-      expect(results).toHaveLength(2); // Gaming Laptop, Wireless Mouse
+      expect(results).toHaveLength(2);
+    });
+
+    it("should search products by mixed case keyword", async () => {
+      // Arrange
+      const req = mockRequest({ keyword: "LaPtOp" });
+      const res = mockResponse();
+
+      // Act
+      await searchProductController(req, res);
+
+      // Assert
+      const results = res.json.mock.calls[0][0];
+      expect(results).toHaveLength(2);
+    });
+
+    it("should search products by description using regex", async () => {
+      // Arrange
+      const req = mockRequest({ keyword: "gaming" });
+      const res = mockResponse();
+
+      // Act
+      await searchProductController(req, res);
+
+      // Assert
+      const results = res.json.mock.calls[0][0];
+      expect(results).toHaveLength(2);
+    });
+
+    it("should search products matching both name and description", async () => {
+      // Arrange
+      const req = mockRequest({ keyword: "portable" });
+      const res = mockResponse();
+
+      // Act
+      await searchProductController(req, res);
+
+      // Assert
+      const results = res.json.mock.calls[0][0];
+      expect(results).toHaveLength(1);
+      expect(results[0].name).toBe("Tablet Device");
+    });
+
+    it("should search products by partial keyword", async () => {
+      // Arrange
+      const req = mockRequest({ keyword: "gam" });
+      const res = mockResponse();
+
+      // Act
+      await searchProductController(req, res);
+
+      // Assert
+      const results = res.json.mock.calls[0][0];
+      expect(results).toHaveLength(2);
     });
 
     it("should return empty array when no matches found", async () => {
+      // Arrange
       const req = mockRequest({ keyword: "nonexistent" });
       const res = mockResponse();
+
+      // Act
       await searchProductController(req, res);
 
+      // Assert
       expect(res.json.mock.calls[0][0]).toHaveLength(0);
+    });
+
+    it("should return search results excluding photo buffer data", async () => {
+      // Arrange
+      const req = mockRequest({ keyword: "laptop" });
+      const res = mockResponse();
+
+      // Act
+      await searchProductController(req, res);
+
+      // Assert
+      const results = res.json.mock.calls[0][0];
+      const product = results[0];
+      expect(product.name).toContain("Laptop");
+      expect(product.photo?.data).toBeUndefined();
+    });
+
+    it("should handle special regex characters in keyword", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Special", slug: "special" });
+      await productModel.create({
+        name: "Product (Special)",
+        slug: "special-product",
+        description: "Test",
+        price: 100,
+        category: category._id,
+        quantity: 5
+      });
+      const req = mockRequest({ keyword: "special" });
+      const res = mockResponse();
+
+      // Act
+      await searchProductController(req, res);
+
+      // Assert
+      const results = res.json.mock.calls[0][0];
+      expect(results.some(p => p.name === "Product (Special)")).toBe(true);
+    });
+
+    it("should search across products from multiple categories", async () => {
+      // Arrange
+      const cat2 = await categoryModel.create({ name: "Other", slug: "other" });
+      await productModel.create({
+        name: "Gaming Chair",
+        slug: "gaming-chair",
+        description: "Comfortable",
+        price: 300,
+        category: cat2._id,
+        quantity: 8
+      });
+      const req = mockRequest({ keyword: "gaming" });
+      const res = mockResponse();
+
+      // Act
+      await searchProductController(req, res);
+
+      // Assert
+      const results = res.json.mock.calls[0][0];
+      expect(results).toHaveLength(3);
     });
   });
 
@@ -417,10 +1090,17 @@ describe("Product Controller Integration Tests", () => {
     let category, mainProduct;
 
     beforeEach(async () => {
-      category = await categoryModel.create({ name: "Electronics", slug: "electronics" });
+      category = await categoryModel.create({ 
+        name: "Electronics", 
+        slug: "electronics" 
+      });
       mainProduct = await productModel.create({
-        name: "Main Laptop", slug: "main", description: "Primary", 
-        price: 1000, category: category._id, quantity: 5
+        name: "Main Laptop", 
+        slug: "main", 
+        description: "Primary", 
+        price: 1000, 
+        category: category._id, 
+        quantity: 5
       });
 
       await productModel.create([
@@ -432,45 +1112,153 @@ describe("Product Controller Integration Tests", () => {
     });
 
     it("should return products from same category excluding main product", async () => {
-      const req = mockRequest({ pid: mainProduct._id.toString(), cid: category._id.toString() });
+      // Arrange
+      const req = mockRequest({ 
+        pid: mainProduct._id.toString(), 
+        cid: category._id.toString() 
+      });
       const res = mockResponse();
+
+      // Act
       await realtedProductController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
-      expect(response.products).toHaveLength(3); // Limited to 3
+      expect(response.products).toHaveLength(3);
       expect(response.products.every(p => p._id.toString() !== mainProduct._id.toString())).toBe(true);
-      // Verify category population
       expect(response.products[0].category).toBeDefined();
     });
 
-    it("should enforce limit of 3 related products", async () => {
-      const req = mockRequest({ pid: mainProduct._id.toString(), cid: category._id.toString() });
+    it("should limit related products to maximum of 3", async () => {
+      // Arrange
+      const req = mockRequest({ 
+        pid: mainProduct._id.toString(), 
+        cid: category._id.toString() 
+      });
       const res = mockResponse();
+
+      // Act
       await realtedProductController(req, res);
 
+      // Assert
       expect(res.send.mock.calls[0][0].products).toHaveLength(3);
     });
 
     it("should only return products from same category", async () => {
-      const otherCat = await categoryModel.create({ name: "Books", slug: "books" });
-      await productModel.create({
-        name: "Book", slug: "book", description: "Different", 
-        price: 25, category: otherCat._id, quantity: 100
+      // Arrange
+      const otherCat = await categoryModel.create({ 
+        name: "Books", 
+        slug: "books" 
       });
-
-      const req = mockRequest({ pid: mainProduct._id.toString(), cid: category._id.toString() });
+      await productModel.create({
+        name: "Book", 
+        slug: "book", 
+        description: "Different", 
+        price: 25, 
+        category: otherCat._id, 
+        quantity: 100
+      });
+      const req = mockRequest({ 
+        pid: mainProduct._id.toString(), 
+        cid: category._id.toString() 
+      });
       const res = mockResponse();
+
+      // Act
       await realtedProductController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products.some(p => p.name === "Book")).toBe(false);
+    });
+
+    it("should return fewer than 3 products when category has limited items", async () => {
+      // Arrange
+      await productModel.deleteMany({ category: category._id, _id: { $ne: mainProduct._id } });
+      await productModel.create({
+        name: "Single Related",
+        slug: "single",
+        description: "Only one",
+        price: 100,
+        category: category._id,
+        quantity: 5
+      });
+      const req = mockRequest({ 
+        pid: mainProduct._id.toString(), 
+        cid: category._id.toString() 
+      });
+      const res = mockResponse();
+
+      // Act
+      await realtedProductController(req, res);
+
+      // Assert
+      expect(res.send.mock.calls[0][0].products).toHaveLength(1);
+    });
+
+    it("should return empty array when no other products in category", async () => {
+      // Arrange
+      await productModel.deleteMany({ category: category._id, _id: { $ne: mainProduct._id } });
+      const req = mockRequest({ 
+        pid: mainProduct._id.toString(), 
+        cid: category._id.toString() 
+      });
+      const res = mockResponse();
+
+      // Act
+      await realtedProductController(req, res);
+
+      // Assert
+      expect(res.send.mock.calls[0][0].products).toHaveLength(0);
+    });
+
+    it("should return related products with populated category excluding photo buffer", async () => {
+      // Arrange
+      const req = mockRequest({ 
+        pid: mainProduct._id.toString(), 
+        cid: category._id.toString() 
+      });
+      const res = mockResponse();
+
+      // Act
+      await realtedProductController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      const product = response.products[0];
+      expect(product.name).toBeDefined();
+      expect(product.category).toBeDefined();
+      expect(product.photo?.data).toBeUndefined();
+    });
+
+    it("should populate category details for related products", async () => {
+      // Arrange
+      const req = mockRequest({ 
+        pid: mainProduct._id.toString(), 
+        cid: category._id.toString() 
+      });
+      const res = mockResponse();
+
+      // Act
+      await realtedProductController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products[0].category.name).toBe("Electronics");
+      expect(response.products[0].category.slug).toBe("electronics");
     });
   });
 
   describe("productCategoryController Integration", () => {
     beforeEach(async () => {
-      const cat1 = await categoryModel.create({ name: "Sports", slug: "sports" });
-      const cat2 = await categoryModel.create({ name: "Kitchen", slug: "kitchen" });
+      const cat1 = await categoryModel.create({ 
+        name: "Sports", 
+        slug: "sports" 
+      });
+      const cat2 = await categoryModel.create({ 
+        name: "Kitchen", 
+        slug: "kitchen" 
+      });
 
       await productModel.create([
         { name: "Tennis Racket", slug: "racket", description: "Pro", price: 200, category: cat1._id, quantity: 10 },
@@ -480,58 +1268,127 @@ describe("Product Controller Integration Tests", () => {
     });
 
     it("should retrieve all products for category by slug", async () => {
+      // Arrange
       const req = mockRequest({ slug: "sports" });
       const res = mockResponse();
+
+      // Act
       await productCategoryController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.success).toBe(true);
       expect(response.category.name).toBe("Sports");
       expect(response.products).toHaveLength(2);
-      // Verify category population in products
       expect(response.products[0].category).toBeDefined();
     });
 
+    it("should populate category details in product results", async () => {
+      // Arrange
+      const req = mockRequest({ slug: "sports" });
+      const res = mockResponse();
+
+      // Act
+      await productCategoryController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products[0].category.name).toBe("Sports");
+      expect(response.products[0].category.slug).toBe("sports");
+    });
+
     it("should return empty array for category with no products", async () => {
+      // Arrange
       await categoryModel.create({ name: "Empty", slug: "empty" });
       const req = mockRequest({ slug: "empty" });
       const res = mockResponse();
+
+      // Act
       await productCategoryController(req, res);
 
+      // Assert
       const response = res.send.mock.calls[0][0];
       expect(response.products).toHaveLength(0);
     });
 
     it("should return null for non-existent category slug", async () => {
+      // Arrange
       const req = mockRequest({ slug: "nonexistent" });
       const res = mockResponse();
+
+      // Act
       await productCategoryController(req, res);
 
+      // Assert
       expect(res.send.mock.calls[0][0].category).toBeNull();
+    });
+
+    it("should include all products when category has many items", async () => {
+      // Arrange
+      const cat = await categoryModel.create({ name: "Large", slug: "large" });
+      for (let i = 1; i <= 15; i++) {
+        await productModel.create({
+          name: `Product${i}`,
+          slug: `prod-${i}`,
+          description: `Desc${i}`,
+          price: i * 10,
+          category: cat._id,
+          quantity: 5
+        });
+      }
+      const req = mockRequest({ slug: "large" });
+      const res = mockResponse();
+
+      // Act
+      await productCategoryController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.products).toHaveLength(15);
+    });
+
+    it("should match category slug case-insensitively in database", async () => {
+      // Arrange
+      const req = mockRequest({ slug: "SPORTS" });
+      const res = mockResponse();
+
+      // Act
+      await productCategoryController(req, res);
+
+      // Assert
+      const response = res.send.mock.calls[0][0];
+      expect(response.category).toBeDefined();
+      expect(response.category.name).toBe("Sports");
     });
   });
 
   describe("Cross-Controller Integration Scenarios", () => {
     it("should maintain data consistency between getProduct and getSingleProduct", async () => {
-      const category = await categoryModel.create({ name: "Test", slug: "test" });
-      await productModel.create({
-        name: "Product", slug: "product", description: "Testing", 
-        price: 99.99, category: category._id, quantity: 7
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Test", 
+        slug: "test" 
       });
-
-      // Retrieve from list
+      await productModel.create({
+        name: "Product", 
+        slug: "product", 
+        description: "Testing", 
+        price: 99.99, 
+        category: category._id, 
+        quantity: 7
+      });
       const req1 = mockRequest();
       const res1 = mockResponse();
-      await getProductController(req1, res1);
-      const fromList = res1.send.mock.calls[0][0].products[0];
-
-      // Retrieve single
       const req2 = mockRequest({ slug: "product" });
       const res2 = mockResponse();
+
+      // Act
+      await getProductController(req1, res1);
+      const fromList = res1.send.mock.calls[0][0].products[0];
       await getSingleProductController(req2, res2);
       const single = res2.send.mock.calls[0][0].product;
 
-      // Verify consistency
+      // Assert
       expect(fromList.name).toBe(single.name);
       expect(fromList.price).toBe(single.price);
       expect(fromList.quantity).toBe(single.quantity);
@@ -539,65 +1396,78 @@ describe("Product Controller Integration Tests", () => {
     });
 
     it("should verify pagination totals match product count", async () => {
-      const category = await categoryModel.create({ name: "Page", slug: "page" });
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Page", 
+        slug: "page" 
+      });
       for (let i = 1; i <= 13; i++) {
         await productModel.create({
-          name: `P${i}`, slug: `p-${i}`, description: `D${i}`, 
-          price: i * 10, category: category._id, quantity: 5
+          name: `P${i}`, 
+          slug: `p-${i}`, 
+          description: `D${i}`, 
+          price: i * 10, 
+          category: category._id, 
+          quantity: 5
         });
       }
-
-      // Get total count
       const req1 = mockRequest();
       const res1 = mockResponse();
-      await productCountController(req1, res1);
-      const total = res1.send.mock.calls[0][0].total;
-
-      // Get all pages
       const req2 = mockRequest({ page: "1" });
       const res2 = mockResponse();
-      await productListController(req2, res2);
-      const page1 = res2.send.mock.calls[0][0].products.length;
-
       const req3 = mockRequest({ page: "2" });
       const res3 = mockResponse();
-      await productListController(req3, res3);
-      const page2 = res3.send.mock.calls[0][0].products.length;
-
       const req4 = mockRequest({ page: "3" });
       const res4 = mockResponse();
+
+      // Act
+      await productCountController(req1, res1);
+      const total = res1.send.mock.calls[0][0].total;
+      await productListController(req2, res2);
+      const page1 = res2.send.mock.calls[0][0].products.length;
+      await productListController(req3, res3);
+      const page2 = res3.send.mock.calls[0][0].products.length;
       await productListController(req4, res4);
       const page3 = res4.send.mock.calls[0][0].products.length;
 
-      // Verify totals match
+      // Assert
       expect(total).toBe(13);
       expect(page1 + page2 + page3).toBe(13);
     });
 
     it("should verify related products are subset of category products", async () => {
-      const category = await categoryModel.create({ name: "Accessories", slug: "accessories" });
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Accessories", 
+        slug: "accessories" 
+      });
       const main = await productModel.create({
-        name: "Main", slug: "main", description: "Primary", 
-        price: 25, category: category._id, quantity: 10
+        name: "Main", 
+        slug: "main", 
+        description: "Primary", 
+        price: 25, 
+        category: category._id, 
+        quantity: 10
       });
       await productModel.create([
         { name: "Related1", slug: "rel1", description: "R1", price: 20, category: category._id, quantity: 15 },
         { name: "Related2", slug: "rel2", description: "R2", price: 30, category: category._id, quantity: 12 },
       ]);
-
-      // Get all category products
       const req1 = mockRequest({ slug: "accessories" });
       const res1 = mockResponse();
+      const req2 = mockRequest({ 
+        pid: main._id.toString(), 
+        cid: category._id.toString() 
+      });
+      const res2 = mockResponse();
+
+      // Act
       await productCategoryController(req1, res1);
       const catProducts = res1.send.mock.calls[0][0].products;
-
-      // Get related products
-      const req2 = mockRequest({ pid: main._id.toString(), cid: category._id.toString() });
-      const res2 = mockResponse();
       await realtedProductController(req2, res2);
       const related = res2.send.mock.calls[0][0].products;
 
-      // Verify related is subset of category
+      // Assert
       expect(catProducts).toHaveLength(3);
       expect(related).toHaveLength(2);
       related.forEach(r => {
@@ -606,27 +1476,132 @@ describe("Product Controller Integration Tests", () => {
     });
 
     it("should verify filter and search return consistent category data", async () => {
-      const category = await categoryModel.create({ name: "Gaming", slug: "gaming" });
+      // Arrange
+      const category = await categoryModel.create({ 
+        name: "Gaming", 
+        slug: "gaming" 
+      });
       await productModel.create([
         { name: "Gaming Mouse", slug: "gaming-mouse", description: "RGB mouse", price: 50, category: category._id, quantity: 20 },
         { name: "Gaming Keyboard", slug: "gaming-keyboard", description: "Mechanical", price: 100, category: category._id, quantity: 15 },
       ]);
-
-      // Search by keyword
       const req1 = mockRequest({ keyword: "gaming" });
       const res1 = mockResponse();
-      await searchProductController(req1, res1);
-      const searchResults = res1.json.mock.calls[0][0];
-
-      // Filter by category
       const req2 = mockRequest({}, { checked: [category._id], radio: [] });
       const res2 = mockResponse();
+
+      // Act
+      await searchProductController(req1, res1);
+      const searchResults = res1.json.mock.calls[0][0];
       await productFiltersController(req2, res2);
       const filterResults = res2.send.mock.calls[0][0].products;
 
-      // Should return same products
+      // Assert
       expect(searchResults).toHaveLength(2);
       expect(filterResults).toHaveLength(2);
+    });
+
+    it("should verify search and category controller return same products", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Unique", slug: "unique" });
+      await productModel.create([
+        { name: "Unique Product 1", slug: "unique-1", description: "First unique", price: 100, category: category._id, quantity: 5 },
+        { name: "Unique Product 2", slug: "unique-2", description: "Second unique", price: 150, category: category._id, quantity: 8 },
+      ]);
+      const req1 = mockRequest({ keyword: "unique" });
+      const res1 = mockResponse();
+      const req2 = mockRequest({ slug: "unique" });
+      const res2 = mockResponse();
+
+      // Act
+      await searchProductController(req1, res1);
+      const searchResults = res1.json.mock.calls[0][0];
+      await productCategoryController(req2, res2);
+      const categoryResults = res2.send.mock.calls[0][0].products;
+
+      // Assert
+      expect(searchResults).toHaveLength(2);
+      expect(categoryResults).toHaveLength(2);
+      expect(searchResults[0]._id.toString()).toBe(categoryResults[0]._id.toString());
+    });
+
+    it("should verify filtered products subset appears in full product list", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      const products = [];
+      for (let i = 1; i <= 10; i++) {
+        products.push({
+          name: `Product${i}`,
+          slug: `prod-${i}`,
+          description: `Desc${i}`,
+          price: i * 50,
+          category: category._id,
+          quantity: 5
+        });
+      }
+      await productModel.create(products);
+      const req1 = mockRequest({}, { checked: [category._id], radio: [100, 300] });
+      const res1 = mockResponse();
+      const req2 = mockRequest();
+      const res2 = mockResponse();
+
+      // Act
+      await productFiltersController(req1, res1);
+      const filteredProducts = res1.send.mock.calls[0][0].products;
+      await getProductController(req2, res2);
+      const allProducts = res2.send.mock.calls[0][0].products;
+
+      // Assert
+      expect(filteredProducts.length).toBeGreaterThan(0);
+      filteredProducts.forEach(fp => {
+        expect(allProducts.some(ap => ap._id.toString() === fp._id.toString())).toBe(true);
+      });
+    });
+
+    it("should verify count reflects total across all pagination pages", async () => {
+      // Arrange
+      const category = await categoryModel.create({ name: "Test", slug: "test" });
+      for (let i = 1; i <= 25; i++) {
+        await productModel.create({
+          name: `Product${i}`,
+          slug: `prod-${i}`,
+          description: `Desc${i}`,
+          price: i * 10,
+          category: category._id,
+          quantity: 5
+        });
+      }
+      const req1 = mockRequest();
+      const res1 = mockResponse();
+      const req2 = mockRequest({ page: "1" });
+      const res2 = mockResponse();
+      const req3 = mockRequest({ page: "2" });
+      const res3 = mockResponse();
+      const req4 = mockRequest({ page: "3" });
+      const res4 = mockResponse();
+      const req5 = mockRequest({ page: "4" });
+      const res5 = mockResponse();
+      const req6 = mockRequest({ page: "5" });
+      const res6 = mockResponse();
+
+      // Act
+      await productCountController(req1, res1);
+      const totalCount = res1.send.mock.calls[0][0].total;
+      await productListController(req2, res2);
+      await productListController(req3, res3);
+      await productListController(req4, res4);
+      await productListController(req5, res5);
+      await productListController(req6, res6);
+      const allPagesCount = 
+        res2.send.mock.calls[0][0].products.length +
+        res3.send.mock.calls[0][0].products.length +
+        res4.send.mock.calls[0][0].products.length +
+        res5.send.mock.calls[0][0].products.length +
+        res6.send.mock.calls[0][0].products.length;
+
+      // Assert
+      expect(totalCount).toBe(25);
+      expect(allPagesCount).toBe(25);
     });
   });
 });
