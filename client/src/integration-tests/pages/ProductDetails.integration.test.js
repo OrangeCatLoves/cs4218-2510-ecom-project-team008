@@ -1,6 +1,4 @@
 // ProductDetails.integration.test.js
-
-/** ---------------- Test harness patches (must be first) ---------------- */
 import React from 'react';
 
 // Polyfill for mongodb driver under jsdom
@@ -24,7 +22,6 @@ jest.mock('braintree', () => ({
   Environment: { Sandbox: {} },
 }));
 
-/** ---------------- Normal imports ---------------- */
 import axios from 'axios';
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -35,7 +32,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-import ProductDetails from '../../pages/ProductDetails';
+import ProductDetails from '../../pages/ProductDetails.js';
 
 // real models from the backend (project root)
 import Category from '../../../../models/categoryModel.js';
@@ -53,13 +50,14 @@ import {
 let mongo;
 let app;
 let server;
+let prevBaseURL;
+let prevApi;
 
 const startApi = async () => {
   app = express();
   app.use(cors());
   app.use(express.json());
 
-  // Mount only the routes ProductDetails uses
   app.get('/api/v1/product/get-product/:slug', getSingleProductController);
   app.get('/api/v1/product/product-photo/:pid', productPhotoController);
   app.get('/api/v1/product/related-product/:pid/:cid', relatedProductController);
@@ -69,9 +67,9 @@ const startApi = async () => {
     server = app.listen(0, () => {
       const { port } = server.address();
       const base = `http://127.0.0.1:${port}`;
-      // Critical: ProductDetails often builds absolute URLs with REACT_APP_API
+      prevApi = process.env.REACT_APP_API;
+      prevBaseURL = axios.defaults.baseURL;
       process.env.REACT_APP_API = base;
-      // Also keep axios default for any relative calls
       axios.defaults.baseURL = base;
       resolve();
     });
@@ -80,6 +78,10 @@ const startApi = async () => {
 
 const stopApi = async () => {
   if (server) await new Promise((r) => server.close(r));
+  // restore globals
+  axios.defaults.baseURL = prevBaseURL;
+  if (prevApi === undefined) delete process.env.REACT_APP_API;
+  else process.env.REACT_APP_API = prevApi;
 };
 
 const clearDb = async () => {
@@ -118,8 +120,8 @@ describe('ProductDetails — true integration', () => {
   });
 
   test('renders product details and related products from live API', async () => {
+    // Arrange
     const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
-
     const main = await Product.create({
       name: 'Gaming Laptop',
       slug: 'gaming-laptop',
@@ -129,7 +131,6 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
-
     const rel1 = await Product.create({
       name: 'Gaming Mouse',
       slug: 'gaming-mouse',
@@ -140,19 +141,15 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
-
     const rel2 = await Product.create({
       name: 'Gaming Keyboard',
       slug: 'gaming-keyboard',
-      description:
-        'Mechanical keyboard with customizable RGB lighting and macro keys for gaming',
+      description: 'Mechanical keyboard with customizable RGB lighting and macro keys for gaming',
       price: 120,
       quantity: 30,
       shipping: true,
       category: cat._id,
     });
-
-    // unrelated category should not appear
     const otherCat = await Category.create({ name: 'Books', slug: 'books' });
     await Product.create({
       name: 'Novel',
@@ -164,49 +161,38 @@ describe('ProductDetails — true integration', () => {
       category: otherCat._id,
     });
 
+    // Act
     renderAt(`/product/${main.slug}`);
 
-    // header renders
+    // Assert
     await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
-
-    // ensure product fetch landed: we expect image alt to show the product name
     await waitFor(() => expect(screen.getByAltText('Gaming Laptop')).toBeInTheDocument());
-
-    // label+value are in the same node, so match the full line
     expect(screen.getByText(/Name\s*:\s*Gaming Laptop/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Description\s*:\s*High-performance gaming laptop/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Description\s*:\s*High-performance gaming laptop/)).toBeInTheDocument();
     expect(screen.getByText(/Price\s*:\s*\$1,500\.00/)).toBeInTheDocument();
     expect(screen.getByText(/Category\s*:\s*Electronics/)).toBeInTheDocument();
 
-    // photo URL built from _id
     const mainImg = screen.getByAltText('Gaming Laptop');
     expect(mainImg).toHaveAttribute('src', `/api/v1/product/product-photo/${main._id}`);
 
-    // related list
     await waitFor(() => {
-      // either related products appear, or the "no similar" text goes away
       expect(screen.queryByText('No Similar Products found')).not.toBeInTheDocument();
       expect(screen.getByText('Gaming Mouse')).toBeInTheDocument();
       expect(screen.getByText('Gaming Keyboard')).toBeInTheDocument();
     });
 
-    // related photos and prices
     const mouseImg = screen.getByAltText('Gaming Mouse');
     expect(mouseImg).toHaveAttribute('src', `/api/v1/product/product-photo/${rel1._id}`);
     const kbImg = screen.getByAltText('Gaming Keyboard');
     expect(kbImg).toHaveAttribute('src', `/api/v1/product/product-photo/${rel2._id}`);
     expect(screen.getByText('$50.00')).toBeInTheDocument();
     expect(screen.getByText('$120.00')).toBeInTheDocument();
-
-    // unrelated product absent
     expect(screen.queryByText('Novel')).not.toBeInTheDocument();
   });
 
   test('navigates via "More Details" and refetches by new slug', async () => {
+    // Arrange
     const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
-
     const p1 = await Product.create({
       name: 'Product One',
       slug: 'product-one',
@@ -216,7 +202,6 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
-
     const p2 = await Product.create({
       name: 'Product Two',
       slug: 'product-two',
@@ -227,26 +212,25 @@ describe('ProductDetails — true integration', () => {
       category: cat._id,
     });
 
+    // Act
     renderAt(`/product/${p1.slug}`);
 
+    // Assert
     await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
-    // product one loaded
     await waitFor(() => expect(screen.getByAltText('Product One')).toBeInTheDocument());
     expect(screen.getByText(/Name\s*:\s*Product One/)).toBeInTheDocument();
 
-    // similar shows p2
     await waitFor(() => expect(screen.getByText('Product Two')).toBeInTheDocument());
-
     const card = screen.getByText('Product Two').closest('.card');
     const moreBtn = within(card).getByRole('button', { name: /More Details/i });
     fireEvent.click(moreBtn);
 
-    // now p2 details
     await waitFor(() => expect(screen.getByText(/Name\s*:\s*Product Two/)).toBeInTheDocument());
     expect(screen.getByText('$200.00')).toBeInTheDocument();
   });
 
   test('shows "No Similar Products found" when none exist', async () => {
+    // Arrange
     const cat = await Category.create({ name: 'Solo', slug: 'solo' });
     const only = await Product.create({
       name: 'Lone Item',
@@ -258,18 +242,19 @@ describe('ProductDetails — true integration', () => {
       category: cat._id,
     });
 
+    // Act
     renderAt(`/product/${only.slug}`);
 
+    // Assert
     await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
     await waitFor(() => expect(screen.getByAltText('Lone Item')).toBeInTheDocument());
     expect(screen.getByText(/Name\s*:\s*Lone Item/)).toBeInTheDocument();
-
     await waitFor(() => expect(screen.getByText('No Similar Products found')).toBeInTheDocument());
   });
 
   test('truncates related description to 60 chars with ellipsis', async () => {
+    // Arrange
     const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
-
     const main = await Product.create({
       name: 'Main',
       slug: 'main',
@@ -279,7 +264,6 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
-
     const long = 'x'.repeat(61);
     await Product.create({
       name: 'Rel',
@@ -291,8 +275,10 @@ describe('ProductDetails — true integration', () => {
       category: cat._id,
     });
 
+    // Act
     renderAt(`/product/${main.slug}`);
 
+    // Assert
     await waitFor(() => expect(screen.getByText('Rel')).toBeInTheDocument());
     const relCard = screen.getByText('Rel').closest('.card');
     const text = within(relCard).getByText(/x+/).textContent;
@@ -301,8 +287,50 @@ describe('ProductDetails — true integration', () => {
   });
 
   test('handles missing product gracefully (backend returns null)', async () => {
+    // Arrange + Act
     renderAt('/product/non-existent-slug');
+
+    // Assert
     await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  test('after navigation, main image src updates to new product photo', async () => {
+    // Arrange
+    const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
+    const p1 = await Product.create({
+      name: 'Alpha',
+      slug: 'alpha',
+      description: 'A',
+      price: 10,
+      quantity: 1,
+      shipping: true,
+      category: cat._id,
+    });
+    const p2 = await Product.create({
+      name: 'Beta',
+      slug: 'beta',
+      description: 'B',
+      price: 20,
+      quantity: 1,
+      shipping: true,
+      category: cat._id,
+    });
+
+    // Act
+    renderAt(`/product/${p1.slug}`);
+
+    // Assert
+    await waitFor(() => expect(screen.getByAltText('Alpha')).toBeInTheDocument());
+    const before = screen.getByAltText('Alpha');
+    expect(before).toHaveAttribute('src', `/api/v1/product/product-photo/${p1._id}`);
+
+    await waitFor(() => expect(screen.getByText('Beta')).toBeInTheDocument());
+    const card = screen.getByText('Beta').closest('.card');
+    fireEvent.click(within(card).getByRole('button', { name: /More Details/i }));
+
+    await waitFor(() => expect(screen.getByAltText('Beta')).toBeInTheDocument());
+    const after = screen.getByAltText('Beta');
+    expect(after).toHaveAttribute('src', `/api/v1/product/product-photo/${p2._id}`);
   });
 });
