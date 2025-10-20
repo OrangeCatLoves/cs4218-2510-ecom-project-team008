@@ -27,6 +27,7 @@ describe('Integration between Orders page and other frontend dependencies', () =
     description: "Mock Description1",
     price: 19.99
   };
+
   const mockProduct2 = {
     _id: 2,
     name: "Mock Product2",
@@ -45,6 +46,7 @@ describe('Integration between Orders page and other frontend dependencies', () =
       name: "Mock Buyer1"
     }
   };
+
   const mockOrder2 = {
     _id: 2,
     products: [mockProduct1, mockProduct2],
@@ -202,7 +204,7 @@ describe('Integration between Orders page and other frontend dependencies', () =
             ok: false
           }
         });
-      } else if(url.includes("/api/v1/auth/all-orders")) {
+      } else if(url.includes("/api/v1/auth/orders")) {
         return Promise.resolve({
           data: mockOrders
         })
@@ -223,6 +225,38 @@ describe('Integration between Orders page and other frontend dependencies', () =
     await waitFor(() => {
       expect(screen.getByRole('heading', {name: /redirecting/i, level: 1})).toBeInTheDocument();
       expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
+    });
+  });
+
+  it('should console log error if error occurs when fetching user orders', async() => {
+    // Arrange
+    const error = new Error("An Error Occurred.");
+    axios.get.mockImplementation((url) => {
+      if(url.includes('/api/v1/auth/user-auth')) {
+        return Promise.resolve({
+          data: {
+            ok: true
+          }
+        });
+      } else if(url.includes("/api/v1/auth/orders")) {
+        return Promise.reject(error);
+      }
+    });
+    const consoleSpy = jest.spyOn(console, 'log');
+    const page = (
+      <Providers>
+        <Routers>
+          <Orders />
+        </Routers>
+      </Providers>
+    );
+
+    // Act
+    render(page);
+
+    // Assert
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(error);
     });
   });
 });
