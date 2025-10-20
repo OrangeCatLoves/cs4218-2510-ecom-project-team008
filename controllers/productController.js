@@ -412,7 +412,13 @@ export const brainTreePaymentController = async (req, res) => {
             // Create order with processing order status
             const order = new orderModel({
               products: productsPaid,
-              payment: result,
+              payment: {
+                success: result.success,
+                message: result.message || "Payment successful",
+                errors: {},
+                params: {},
+                transaction: result.transaction
+              },
               buyer: req.user._id,
               status: "Processing",
             }).save();
@@ -428,7 +434,13 @@ export const brainTreePaymentController = async (req, res) => {
           } else {
             const order = new orderModel({
               products: productsPaid,
-              payment: result,
+              payment: {
+                success: result.success,
+                message: result.message || "Payment failed",
+                errors: result.errors || {},
+                params: result.params || {},
+                transaction: result.transaction
+              },
               buyer: req.user._id,
             }).save();
           }

@@ -71,6 +71,8 @@ describe('Integration between backend Order System with MongoDB Database', () =>
         payment: {
           success: true,
           message: "Mock Message1",
+          errors: {},
+          params: {}
         },
         buyer: user1._id,
         status: "Not Process"
@@ -236,6 +238,8 @@ describe('Integration between backend Order System with MongoDB Database', () =>
         payment: {
           success: true,
           message: "Mock Message1",
+          errors: {},
+          params: {}
         },
         buyer: user1._id,
         status: "Not Process"
@@ -259,6 +263,8 @@ describe('Integration between backend Order System with MongoDB Database', () =>
         payment: {
           success: false,
           message: "Mock Message2",
+          errors: {},
+          params: {}
         },
         buyer: user2._id,
         status: "Processing"
@@ -456,6 +462,8 @@ describe('Integration between backend Order System with MongoDB Database', () =>
         payment: {
           success: true,
           message: "Mock Message1",
+          errors: {},
+          params: {}
         },
         buyer: user1._id,
         status: "Not Process"
@@ -508,6 +516,8 @@ describe('Integration between backend Order System with MongoDB Database', () =>
         payment: {
           success: true,
           message: "Mock Message1",
+          errors: {},
+          params: {}
         },
         buyer: user1._id,
         status: "Not Process"
@@ -560,6 +570,8 @@ describe('Integration between backend Order System with MongoDB Database', () =>
         payment: {
           success: true,
           message: "Mock Message1",
+          errors: {},
+          params: {}
         },
         buyer: user1._id,
         status: "Not Process"
@@ -615,6 +627,8 @@ describe('Integration between backend Order System with MongoDB Database', () =>
         payment: {
           success: true,
           message: "Mock Message1",
+          errors: {},
+          params: {}
         },
         buyer: user1._id,
         status: "Not Process"
