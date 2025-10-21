@@ -20,7 +20,7 @@ export const normalUsers = [
     name: "User 1",
     email: "user1@email.com",
     password: "password1",
-    phone: "1234567890",
+    phone: "9876543210",
     address: "abc user street 1",
     answer: "user 1",
   },

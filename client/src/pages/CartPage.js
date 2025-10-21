@@ -20,7 +20,6 @@ const CartPage = () => {
   // Computed values
   const cartItemCount = Object.keys(cart || {}).length;
   const hasItems = cartItemCount > 0;
-  const canShowPayment = clientToken && auth?.token && hasItems;
 
   //total price
   const totalPrice = () => {
@@ -44,8 +43,7 @@ const CartPage = () => {
       const { data } = await axios.get("/api/v1/product/braintree/token");
       setClientToken(data?.clientToken);
     } catch (error) {
-      console.log(error);
-      toast.error("Failed to initialize payment gateway");
+      console.error(error);
     }
   };
   useEffect(() => {
@@ -175,7 +173,9 @@ const CartPage = () => {
                 </div>
               )}
               <div className="mt-2">
-                {canShowPayment && (
+                {!clientToken || !auth?.token || !hasItems ? (
+                  ""
+                ) : (
                   <>
                     <DropIn
                       options={{
