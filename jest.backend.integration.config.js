@@ -1,6 +1,6 @@
 module.exports = {
   // display name
-  displayName: "integration",
+  displayName: "backend integration",
 
   // when testing backend
   testEnvironment: "node",

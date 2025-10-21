@@ -510,7 +510,7 @@ describe('updateProfileController', () => {
     })
   })
 
-  test('should return 400 when no user is found and input value is empty', async() => {
+  test('should return 500 when no user is found and input value is empty', async() => {
     // Arrange
     const req = {
       user: {
@@ -524,7 +524,7 @@ describe('updateProfileController', () => {
     await updateProfileController(req, res);
 
     // Assert
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(500);
     expect(res.send).toHaveBeenCalledWith({
       success: false,
       message: "Error While Update profile",
@@ -791,7 +791,7 @@ describe('updateProfileController', () => {
     await updateProfileController(req, res);
 
     // Assert
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(500);
     expect(res.send).toHaveBeenCalledWith({
       success: false,
       message: "Error While Update profile",

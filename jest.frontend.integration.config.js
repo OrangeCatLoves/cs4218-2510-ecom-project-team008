@@ -1,6 +1,6 @@
 module.exports = {
   // name displayed during tests
-  displayName: "frontend",
+  displayName: "frontend integration",
 
   // simulates browser environment in jest
   // e.g., using document.querySelector in your tests
