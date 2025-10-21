@@ -31,7 +31,7 @@ const Orders = () => {
             <h1 className="text-center">All Orders</h1>
             {orders?.map((o, i) => {
               return (
-                <div className="border shadow">
+                <div data-testid="order" className="border shadow">
                   <table className="table">
                     <thead>
                       <tr>
@@ -45,18 +45,18 @@ const Orders = () => {
                     </thead>
                     <tbody>
                       <tr>
-                        <td>{i + 1}</td>
-                        <td>{o?.status}</td>
-                        <td>{o?.buyer?.name}</td>
-                        <td>{moment(o?.createAt).fromNow()}</td>
-                        <td>{o?.payment.success ? "Success" : "Failed"}</td>
-                        <td>{o?.products?.length}</td>
+                        <td data-testid="order-number">{i + 1}</td>
+                        <td data-testid="order-status">{o?.status}</td>
+                        <td data-testid="order-buyer">{o?.buyer?.name}</td>
+                        <td data-testid="order-time">{moment(o?.createAt).fromNow()}</td>
+                        <td data-testid="order-payment-success">{o?.payment.success ? "Success" : "Failed"}</td>
+                        <td data-testid="order-product-count">{o?.products?.length}</td>
                       </tr>
                     </tbody>
                   </table>
                   <div className="container">
                     {o?.products?.map((p, i) => (
-                      <div className="row mb-2 p-3 card flex-row" key={p._id}>
+                      <div data-testid="product" className="row mb-2 p-3 card flex-row" key={p._id}>
                         <div className="col-md-4">
                           <img
                             src={`/api/v1/product/product-photo/${p._id}`}
@@ -67,9 +67,9 @@ const Orders = () => {
                           />
                         </div>
                         <div className="col-md-8">
-                          <p>{p.name}</p>
-                          <p>{p.description.substring(0, 30)}</p>
-                          <p>Price : {p.price}</p>
+                          <p data-testid="product-name">{p.name}</p>
+                          <p data-testid="product-description">{p.description.substring(0, 30)}</p>
+                          <p data-testid="product-price">Price : {p.price}</p>
                         </div>
                       </div>
                     ))}
