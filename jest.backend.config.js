@@ -8,12 +8,13 @@ module.exports = {
   // which test to run
   testMatch: [
     "<rootDir>/controllers/*.test.js",
-    "<rootDir>/models/*.test.js"
+    "<rootDir>/models/*.test.js",
+    "<rootDir>/integration-tests/*.test.js"
   ],
 
   // jest code coverage
   collectCoverage: true,
-  collectCoverageFrom: ["controllers/**", "models/**"],
+  collectCoverageFrom: ["controllers/**", "models/**", "integration-tests/**"],
   coverageThreshold: {
     global: {
       lines: 80,

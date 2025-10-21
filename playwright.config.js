@@ -118,12 +118,12 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "NODE_ENV=test npm run start",
+      command: "npm run start",
       url: "http://localhost:6060",
-      timeout: 120 * 1000,
+      timeout: 120_000,
       reuseExistingServer: !process.env.CI,
-    },
-
+      env: { NODE_ENV: "test" }
+    }
   ]
 
 });
