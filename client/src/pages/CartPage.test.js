@@ -184,7 +184,10 @@ describe("CartPage component", () => {
   it("does not fetch individual product details", async () => {
     useCart.mockReturnValue(mockCartContext(mockCart));
     await renderCartPage();
-    expect(axios.get).not.toHaveBeenCalledWith(expect.stringContaining("/api/v1/product/get-product/"));
+
+    await waitFor(() => {
+      expect(axios.get).not.toHaveBeenCalledWith(expect.stringContaining("/api/v1/product/get-product/"));
+    });
   });
 
   // Test 4: Token retrieval on mount
@@ -249,7 +252,9 @@ describe("CartPage component", () => {
       const removeButtons = screen.getAllByRole("button", { name: "Remove" });
       await act(async () => fireEvent.click(removeButtons[0]));
 
-      expect(mockContext.removeFromCart).toHaveBeenCalledWith(mockProducts[0].slug);
+      await waitFor(() => {
+        expect(mockContext.removeFromCart).toHaveBeenCalledWith(mockProducts[0].slug);
+      });
     });
   });
 
@@ -298,7 +303,10 @@ describe("CartPage component", () => {
       useCart.mockReturnValue(mockCartContext(emptyCart));
       await renderCartPage();
       fireEvent.click(screen.getByRole("button", { name: "Update Address" }));
-      expect(mockNavigate).toHaveBeenCalledWith("/dashboard/user/profile");
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith("/dashboard/user/profile");
+      });
     });
 
     // Test 17: Login button for guest user
@@ -310,7 +318,10 @@ describe("CartPage component", () => {
       const loginButton = screen.getByRole("button", { name: /Please Login to checkout/i });
       expect(loginButton).toBeInTheDocument();
       fireEvent.click(loginButton);
-      expect(mockNavigate).toHaveBeenCalledWith("/login", { state: "/cart" });
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith("/login", { state: "/cart" });
+      });
     });
 
     // Test 18: Update Address button shown when logged in but no address
@@ -344,9 +355,11 @@ describe("CartPage component", () => {
         });
       });
 
-      expect(mockContext.clearCart).toHaveBeenCalled();
-      expect(mockNavigate).toHaveBeenCalledWith("/dashboard/user/orders");
-      expect(toast.success).toHaveBeenCalledWith("Payment Completed Successfully ");
+      await waitFor(() => {
+        expect(mockContext.clearCart).toHaveBeenCalled();
+        expect(mockNavigate).toHaveBeenCalledWith("/dashboard/user/orders");
+        expect(toast.success).toHaveBeenCalledWith("Payment Completed Successfully ");
+      });
     });
 
     // Test 20: Payment error handling
@@ -360,9 +373,12 @@ describe("CartPage component", () => {
       fireEvent.click(screen.getByText("Make Payment"));
 
       await waitFor(() => expect(consoleSpy).toHaveBeenCalled());
-      expect(toast.error).toHaveBeenCalledWith("Payment failed. Please try again.");
-      expect(mockNavigate).not.toHaveBeenCalled();
-      expect(screen.getByText("Make Payment")).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("Payment failed. Please try again.");
+        expect(mockNavigate).not.toHaveBeenCalled();
+        expect(screen.getByText("Make Payment")).toBeInTheDocument();
+      });
 
       consoleSpy.mockRestore();
     });

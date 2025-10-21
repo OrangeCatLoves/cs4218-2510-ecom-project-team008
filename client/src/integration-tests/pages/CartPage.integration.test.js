@@ -184,6 +184,9 @@ describe("CartPage Integration Tests", () => {
 
       renderCartPage();
 
+      // Wait for component to mount and async operations to settle
+      await screen.findByText("Hello Guest");
+
       // Assertions - Guest specific UI
       expect(screen.getByText("Hello Guest")).toBeInTheDocument();
       expect(screen.getByText("Your Cart Is Empty")).toBeInTheDocument();
@@ -198,6 +201,11 @@ describe("CartPage Integration Tests", () => {
       localStorage.setItem("cart-guest", JSON.stringify(mockCart));
 
       renderCartPage();
+
+      // Wait for component to mount and async operations to settle
+      await waitFor(() => {
+        expect(screen.getByText("Hello Guest")).toBeInTheDocument();
+      });
 
       // Assertions - Guest greeting
       expect(screen.getByText("Hello Guest")).toBeInTheDocument();
@@ -228,6 +236,12 @@ describe("CartPage Integration Tests", () => {
 
       renderCartPage();
 
+      // Wait for Braintree token API call to complete (triggered by useEffect)
+      await waitFor(() => {
+        const tokenCall = mockAxios.history.get.find(req => req.url === "/api/v1/product/braintree/token");
+        expect(tokenCall).toBeDefined();
+      });
+
       // Wait for auth state to load
       await waitFor(() => {
         expect(screen.getByText("Hello John Doe")).toBeInTheDocument();
@@ -257,6 +271,12 @@ describe("CartPage Integration Tests", () => {
 
       renderCartPage();
 
+      // Wait for Braintree token API call to complete (triggered by useEffect)
+      await waitFor(() => {
+        const tokenCall = mockAxios.history.get.find(req => req.url === "/api/v1/product/braintree/token");
+        expect(tokenCall).toBeDefined();
+      });
+
       // Wait for auth state to load
       await waitFor(() => {
         expect(screen.getByText("Hello John Doe")).toBeInTheDocument();
@@ -285,6 +305,11 @@ describe("CartPage Integration Tests", () => {
       localStorage.setItem("cart-guest", JSON.stringify(mockCart));
 
       renderCartPage();
+
+      // Wait for component to mount and async operations to settle
+      await waitFor(() => {
+        expect(screen.getByText("iphone-14")).toBeInTheDocument();
+      });
 
       // Verify initial state
       expect(screen.getByText("iphone-14")).toBeInTheDocument();
@@ -319,6 +344,12 @@ describe("CartPage Integration Tests", () => {
       localStorage.setItem("cart-John Doe", JSON.stringify(mockCart));
 
       renderCartPage();
+
+      // Wait for Braintree token API call to complete (triggered by useEffect)
+      await waitFor(() => {
+        const tokenCall = mockAxios.history.get.find(req => req.url === "/api/v1/product/braintree/token");
+        expect(tokenCall).toBeDefined();
+      });
 
       // Wait for page to load
       await waitFor(() => {
@@ -356,6 +387,11 @@ describe("CartPage Integration Tests", () => {
 
       renderCartPage();
 
+      // Wait for component to mount and async operations to settle
+      await waitFor(() => {
+        expect(screen.getByText("iphone-14")).toBeInTheDocument();
+      });
+
       // Verify initial state - item present
       expect(screen.getByText("iphone-14")).toBeInTheDocument();
       expect(screen.getByText(/You Have 1 items/)).toBeInTheDocument();
@@ -387,6 +423,12 @@ describe("CartPage Integration Tests", () => {
       setupPaymentReadyState();
 
       renderCartPage();
+
+      // Wait for Braintree token API call to complete (triggered by useEffect)
+      await waitFor(() => {
+        const tokenCall = mockAxios.history.get.find(req => req.url === "/api/v1/product/braintree/token");
+        expect(tokenCall).toBeDefined();
+      });
 
       // Wait for payment UI to load
       await waitForPaymentUI();
@@ -437,6 +479,12 @@ describe("CartPage Integration Tests", () => {
 
       renderCartPage();
 
+      // Wait for Braintree token API call to complete (triggered by useEffect)
+      await waitFor(() => {
+        const tokenCall = mockAxios.history.get.find(req => req.url === "/api/v1/product/braintree/token");
+        expect(tokenCall).toBeDefined();
+      });
+
       // Wait for payment UI
       await waitForPaymentUI();
 
@@ -472,6 +520,12 @@ describe("CartPage Integration Tests", () => {
 
       renderCartPage();
 
+      // Wait for Braintree token API call to complete (triggered by useEffect)
+      await waitFor(() => {
+        const tokenCall = mockAxios.history.get.find(req => req.url === "/api/v1/product/braintree/token");
+        expect(tokenCall).toBeDefined();
+      });
+
       // Wait for payment UI to load
       await waitForPaymentUI();
 
@@ -495,6 +549,12 @@ describe("CartPage Integration Tests", () => {
       localStorage.setItem("cart-John Doe", JSON.stringify(mockCart));
 
       renderCartPage();
+
+      // Wait for Braintree token API call to complete (triggered by useEffect)
+      await waitFor(() => {
+        const tokenCall = mockAxios.history.get.find(req => req.url === "/api/v1/product/braintree/token");
+        expect(tokenCall).toBeDefined();
+      });
 
       // Wait for payment UI to load
       await waitForPaymentUI();

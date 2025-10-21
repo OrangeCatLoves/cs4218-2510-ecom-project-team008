@@ -40,7 +40,6 @@ const cartReducer = (state, action) => {
   switch (action.type) {
     case "ADD_TO_CART": {
       const { slug, price, productId } = action.payload;
-      toast.success("Add to Cart Successfully");
       return {
         ...state,
         [slug]: state[slug]
@@ -51,7 +50,6 @@ const cartReducer = (state, action) => {
     case "REMOVE_FROM_CART": {
       const { slug } = action.payload;
       const { [slug]: removed, ...rest } = state;
-      toast.success("Remove from Cart Successfully");
       return rest;
     }
     case "UPDATE_QUANTITY": {
@@ -60,14 +58,12 @@ const cartReducer = (state, action) => {
         const { [slug]: removed, ...rest } = state;
         return rest;
       }
-      toast.success("Update Cart Quantity Successfully");
       return {
         ...state,
         [slug]: { quantity, price, productId },
       };
     }
     case "CLEAR_CART":
-      toast.success("Cart Cleared Successfully");
       return {};
     case "SET_CART":
       return action.payload;
@@ -106,6 +102,8 @@ export const CartProvider = ({ children }) => {
         type: "ADD_TO_CART",
         payload: { slug, price: product.price, productId: product._id },
       });
+
+      toast.success("Add to Cart Successfully");
     } catch (error) {
       const errorMessage = error.message === "Not enough inventory"
         ? "Error added to cart: Not enough inventory"
@@ -118,6 +116,7 @@ export const CartProvider = ({ children }) => {
 
   const removeFromCart = (slug) => {
     dispatch({ type: "REMOVE_FROM_CART", payload: { slug } });
+    toast.success("Remove from Cart Successfully");
   };
 
   const updateQuantity = async (slug, quantity) => {
@@ -129,6 +128,8 @@ export const CartProvider = ({ children }) => {
         type: "UPDATE_QUANTITY",
         payload: { slug, quantity, price: product.price, productId: product._id },
       });
+
+      toast.success("Update Cart Quantity Successfully");
     } catch (error) {
       const errorMessage = error.message === "Not enough inventory"
         ? "Error updating quantity: Not enough inventory"
@@ -141,6 +142,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     dispatch({ type: "CLEAR_CART" });
+    toast.success("Cart Cleared Successfully");
   };
 
   return (

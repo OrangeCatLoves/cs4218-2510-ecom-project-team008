@@ -38,7 +38,10 @@ describe("useCategory Hook", () => {
     await waitFor(() => {
       expect(result.current[0]).toEqual(mockCategories);
     });
-    expect(axios.get).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("should not update categories and log error when API response is unsuccessful", async () => {
@@ -47,8 +50,11 @@ describe("useCategory Hook", () => {
     const { result } = renderHook(() => useCategory());
 
     await waitFor(() => expect(consoleLogSpy).toHaveBeenCalled());
-    expect(result.current[0]).toEqual([]); // The categories should remain empty on failure.
-    expect(axios.get).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(result.current[0]).toEqual([]); // The categories should remain empty on failure.
+      expect(axios.get).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("should not update categories and log error when API request fails", async () => {
@@ -58,8 +64,11 @@ describe("useCategory Hook", () => {
     const { result } = renderHook(() => useCategory());
 
     await waitFor(() => expect(consoleLogSpy).toHaveBeenCalledWith(mockError));
-    expect(result.current[0]).toEqual([]);
-    expect(axios.get).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(result.current[0]).toEqual([]);
+      expect(axios.get).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("should refresh categories when refreshCategories is called", async () => {
@@ -108,7 +117,10 @@ describe("useCategory Hook", () => {
     await waitFor(() => {
       expect(axios.get).toHaveBeenCalledWith(API_URLS.GET_CATEGORIES);
     });
-    expect(result.current[0]).toEqual([]);
+
+    await waitFor(() => {
+      expect(result.current[0]).toEqual([]);
+    });
   });
 
   it("should handle API response with undefined category", async () => {
@@ -127,7 +139,10 @@ describe("useCategory Hook", () => {
     await waitFor(() => {
       expect(axios.get).toHaveBeenCalledWith(API_URLS.GET_CATEGORIES);
     });
-    expect(result.current[0]).toEqual([]);
+
+    await waitFor(() => {
+      expect(result.current[0]).toEqual([]);
+    });
   });
 
   it("should handle API response with null data", async () => {
@@ -143,8 +158,11 @@ describe("useCategory Hook", () => {
     await waitFor(() => {
       expect(consoleLogSpy).toHaveBeenCalled();
     });
-    expect(result.current[0]).toEqual([]);
-    expect(axios.get).toHaveBeenCalledWith(API_URLS.GET_CATEGORIES);
+
+    await waitFor(() => {
+      expect(result.current[0]).toEqual([]);
+      expect(axios.get).toHaveBeenCalledWith(API_URLS.GET_CATEGORIES);
+    });
   });
 
   it("should only call API once on mount", async () => {
@@ -174,7 +192,9 @@ describe("useCategory Hook", () => {
     rerender();
 
     // Assert
-    expect(axios.get).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(axios.get).not.toHaveBeenCalled();
+    });
   });
 
   it("should maintain initial empty state before API call completes", () => {
@@ -204,8 +224,11 @@ describe("useCategory Hook", () => {
     await waitFor(() => {
       expect(consoleLogSpy).toHaveBeenCalled();
     });
-    expect(result.current[0]).toEqual([]);
-    expect(axios.get).toHaveBeenCalledWith(API_URLS.GET_CATEGORIES);
+
+    await waitFor(() => {
+      expect(result.current[0]).toEqual([]);
+      expect(axios.get).toHaveBeenCalledWith(API_URLS.GET_CATEGORIES);
+    });
   });
 
   it("should use the correct API endpoint from constants", async () => {

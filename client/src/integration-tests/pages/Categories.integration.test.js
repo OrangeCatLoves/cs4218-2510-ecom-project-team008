@@ -51,6 +51,14 @@ describe("Categories Page Integration Tests", () => {
 
     renderWithProviders(<Categories />);
 
+    // Wait for API call to complete and state to settle
+    await waitFor(() => {
+      const categoryCall = mockAxios.history.get.find(
+        (call) => call.url === "/api/v1/category/get-category"
+      );
+      expect(categoryCall).toBeDefined();
+    });
+
     // Wait for API call and render
     await waitFor(() => {
       const allElectronics = screen.getAllByText("Electronics");
@@ -90,6 +98,14 @@ describe("Categories Page Integration Tests", () => {
 
     renderWithProviders(<Categories />);
 
+    // Wait for API call to complete and state to settle
+    await waitFor(() => {
+      const categoryCall = mockAxios.history.get.find(
+        (call) => call.url === "/api/v1/category/get-category"
+      );
+      expect(categoryCall).toBeDefined();
+    });
+
     // Wait for API call to complete
     await waitFor(() => {
       expect(mockAxios.history.get.length).toBeGreaterThan(0);
@@ -112,6 +128,14 @@ describe("Categories Page Integration Tests", () => {
     });
 
     renderWithProviders(<Categories />);
+
+    // Wait for API call to complete and state to settle
+    await waitFor(() => {
+      const categoryCall = mockAxios.history.get.find(
+        (call) => call.url === "/api/v1/category/get-category"
+      );
+      expect(categoryCall).toBeDefined();
+    });
 
     await waitFor(() => {
       const allElectronics = screen.getAllByText("Electronics");

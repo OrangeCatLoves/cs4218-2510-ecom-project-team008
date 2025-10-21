@@ -11,7 +11,7 @@ import "../styles/CartStyles.css";
 
 const CartPage = () => {
   const [auth, setAuth] = useAuth();
-  const { cart, removeFromCart, clearCart } = useCart();
+  const { cart, removeFromCart, clearCart, updateQuantity } = useCart();
   const [clientToken, setClientToken] = useState("");
   const [instance, setInstance] = useState("");
   const [loading, setLoading] = useState(false);
@@ -108,6 +108,20 @@ const CartPage = () => {
                   <div className="col-md-4">
                     <p>{slug}</p>
                     <p>Quantity: {item.quantity}</p>
+                    <div className="quantity-controls mb-2">
+                      <button
+                        className="btn btn-sm btn-secondary me-2"
+                        onClick={() => updateQuantity(slug, item.quantity - 1)}
+                      >
+                        -
+                      </button>
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => updateQuantity(slug, item.quantity + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
                     <p>Price : ${item.price}</p>
                   </div>
                   <div className="col-md-4 cart-remove-btn">

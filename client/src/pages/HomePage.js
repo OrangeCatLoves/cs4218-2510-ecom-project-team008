@@ -167,6 +167,9 @@ const HomePage = () => {
         </div>
         <div className="col-md-9 ">
           <h1 className="text-center">All Products</h1>
+          {products?.length === 0 && (
+            <h2 className="text-center">No Products Found</h2>
+          )}
           <div className="d-flex flex-wrap">
             {products?.map((p) => (
               <div className="card m-2" key={p._id}>

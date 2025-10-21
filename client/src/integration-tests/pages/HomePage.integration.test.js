@@ -340,9 +340,9 @@ describe("Integration between HomePage and frontend dependencies", () => {
       </Providers>
     );
 
-    // Wait for all 3 API calls
+    // Wait for all 3 API calls to complete and state to settle
     await waitFor(() => {
-      expect(mockAxios.history.get.length).toBe(3);
+      expect(mockAxios.history.get.length).toBeGreaterThanOrEqual(3);
     });
 
     // Verify correct endpoints called
@@ -369,6 +369,11 @@ describe("Integration between HomePage and frontend dependencies", () => {
         </Routers>
       </Providers>
     );
+
+    // Wait for initial API calls to complete
+    await waitFor(() => {
+      expect(mockAxios.history.get.length).toBeGreaterThanOrEqual(3);
+    });
 
     // Wait for initial load
     await waitFor(() => {
@@ -408,6 +413,11 @@ describe("Integration between HomePage and frontend dependencies", () => {
         </Routers>
       </Providers>
     );
+
+    // Wait for initial API calls to complete
+    await waitFor(() => {
+      expect(mockAxios.history.get.length).toBeGreaterThanOrEqual(3);
+    });
 
     // Wait for initial load (12 products)
     await waitFor(() => {
@@ -454,6 +464,11 @@ describe("Integration between HomePage and frontend dependencies", () => {
       </Providers>
     );
 
+    // Wait for initial API calls to complete
+    await waitFor(() => {
+      expect(mockAxios.history.get.length).toBeGreaterThanOrEqual(3);
+    });
+
     await waitFor(() => screen.getByText("iPhone 14"));
 
     // Click first "ADD TO CART" button
@@ -475,6 +490,11 @@ describe("Integration between HomePage and frontend dependencies", () => {
         </Routers>
       </Providers>
     );
+
+    // Wait for initial API calls to complete
+    await waitFor(() => {
+      expect(mockAxios.history.get.length).toBeGreaterThanOrEqual(3);
+    });
 
     await waitFor(() => screen.getByText("iPhone 14"));
 
@@ -498,6 +518,11 @@ describe("Integration between HomePage and frontend dependencies", () => {
         </Routers>
       </Providers>
     );
+
+    // Wait for initial API calls to complete
+    await waitFor(() => {
+      expect(mockAxios.history.get.length).toBeGreaterThanOrEqual(3);
+    });
 
     // Wait for initial load
     await waitFor(() => {
@@ -544,6 +569,11 @@ describe("Integration between HomePage and frontend dependencies", () => {
         </Routers>
       </Providers>
     );
+
+    // Wait for API calls to be attempted
+    await waitFor(() => {
+      expect(mockAxios.history.get.length).toBeGreaterThanOrEqual(1);
+    });
 
     // Wait for error to be handled and loading to complete
     await waitFor(

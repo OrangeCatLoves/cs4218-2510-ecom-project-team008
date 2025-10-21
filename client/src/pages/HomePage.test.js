@@ -111,11 +111,11 @@ jest.mock("react-icons/ai", () => ({
 }));
 
 describe("HomePage Component", () => {
-  let consoleLogSpy;
+  let consoleErrorSpy;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     // Setup useCart mock with default return value
     const { useCart } = require("../context/cart");
@@ -144,8 +144,8 @@ describe("HomePage Component", () => {
   });
 
   afterAll(() => {
-    if (consoleLogSpy) {
-      consoleLogSpy.mockRestore();
+    if (consoleErrorSpy) {
+      consoleErrorSpy.mockRestore();
     }
   });
 
@@ -222,7 +222,9 @@ describe("HomePage Component", () => {
       expect(getByText("$899.00")).toBeInTheDocument();
     });
 
-    expect(axios.get).toHaveBeenCalledWith("/api/v1/product/product-list/1");
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenCalledWith("/api/v1/product/product-list/1");
+    });
   });
 
   it("should display truncated product descriptions", async () => {
@@ -295,7 +297,9 @@ describe("HomePage Component", () => {
     fireEvent.click(detailsButton);
 
     // Assert
-    expect(mockNavigate).toHaveBeenCalledWith("/product/test-product");
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/product/test-product");
+    });
   });
 
   it("should add product to cart when Add to Cart is clicked", async () => {
@@ -340,7 +344,9 @@ describe("HomePage Component", () => {
     fireEvent.click(addToCartButton);
 
     // Assert
-    expect(addToCart).toHaveBeenCalledWith("test-product");
+    await waitFor(() => {
+      expect(addToCart).toHaveBeenCalledWith("test-product");
+    });
   });
 
   it("should handle category filter selection", async () => {
@@ -470,7 +476,10 @@ describe("HomePage Component", () => {
     await waitFor(() => {
       expect(getByText("Product 2")).toBeInTheDocument();
     });
-    expect(axios.get).toHaveBeenCalledWith("/api/v1/product/product-list/2");
+
+    await waitFor(() => {
+      expect(axios.get).toHaveBeenCalledWith("/api/v1/product/product-list/2");
+    });
   });
 
   it("should handle reset filters button", async () => {
@@ -501,7 +510,9 @@ describe("HomePage Component", () => {
     fireEvent.click(resetButton);
 
     // Assert
-    expect(window.location.reload).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(window.location.reload).toHaveBeenCalled();
+    });
   });
 
   it("should handle API errors when fetching products", async () => {
@@ -525,7 +536,7 @@ describe("HomePage Component", () => {
 
     // Assert
     await waitFor(() => {
-      expect(consoleLogSpy).toHaveBeenCalledWith(apiError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(apiError);
     });
   });
 
@@ -864,7 +875,7 @@ describe("HomePage Component", () => {
 
     // Assert - error should be logged
     await waitFor(() => {
-      expect(consoleLogSpy).toHaveBeenCalledWith(apiError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(apiError);
     });
   });
 
@@ -890,7 +901,7 @@ describe("HomePage Component", () => {
 
     // Assert
     await waitFor(() => {
-      expect(consoleLogSpy).toHaveBeenCalledWith(categoryError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(categoryError);
     });
   });
 
@@ -916,7 +927,7 @@ describe("HomePage Component", () => {
 
     // Assert
     await waitFor(() => {
-      expect(consoleLogSpy).toHaveBeenCalledWith(countError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(countError);
     });
   });
 
@@ -1027,8 +1038,10 @@ describe("HomePage Component", () => {
       expect(axios.get).toHaveBeenCalled();
     });
 
-    // console.log should NOT be called because isValid is false
-    expect(consoleLogSpy).not.toHaveBeenCalledWith(apiError);
+    // console.error should NOT be called because isValid is false
+    await waitFor(() => {
+      expect(consoleErrorSpy).not.toHaveBeenCalledWith(apiError);
+    });
   });
 
   it("should handle filter API unmount with isValid preventing state update", async () => {

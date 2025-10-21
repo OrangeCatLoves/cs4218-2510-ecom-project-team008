@@ -84,8 +84,11 @@ describe("Cart Context", () => {
         price: 100,
         productId: "123",
       }));
-      expect(axios.get).toHaveBeenCalledWith("/api/v1/product/get-product/test-product");
-      expect(toast.success).toHaveBeenCalledWith("Add to Cart Successfully");
+
+      await waitFor(() => {
+        expect(axios.get).toHaveBeenCalledWith("/api/v1/product/get-product/test-product");
+        expect(toast.success).toHaveBeenCalledWith("Add to Cart Successfully");
+      });
     });
 
     it("should increment quantity when adding existing item", async () => {
@@ -99,7 +102,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.addToCart("test-product"));
 
       await waitFor(() => expect(result.current.cart["test-product"].quantity).toBe(3));
-      expect(toast.success).toHaveBeenCalledWith("Add to Cart Successfully");
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith("Add to Cart Successfully");
+      });
     });
 
     it("should reject if exceeding inventory", async () => {
@@ -113,7 +119,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.addToCart("test-product"));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Error added to cart: Not enough inventory"));
-      expect(result.current.cart["test-product"].quantity).toBe(9);
+
+      await waitFor(() => {
+        expect(result.current.cart["test-product"].quantity).toBe(9);
+      });
     });
 
     it("should reject if price is missing", async () => {
@@ -124,7 +133,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.addToCart("test-product"));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Error added to cart: Price of product not available"));
-      expect(result.current.cart).toEqual({});
+
+      await waitFor(() => {
+        expect(result.current.cart).toEqual({});
+      });
     });
 
     it("should reject if product does not exist", async () => {
@@ -135,7 +147,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.addToCart("non-existent"));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Item does not exist"));
-      expect(result.current.cart).toEqual({});
+
+      await waitFor(() => {
+        expect(result.current.cart).toEqual({});
+      });
     });
 
     it("should handle generic API error with custom error message", async () => {
@@ -146,7 +161,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.addToCart("test-product"));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Network timeout"));
-      expect(result.current.cart).toEqual({});
+
+      await waitFor(() => {
+        expect(result.current.cart).toEqual({});
+      });
     });
   });
 
@@ -166,7 +184,10 @@ describe("Cart Context", () => {
       await waitFor(() => expect(result.current.cart).toEqual({
         "product-2": { quantity: 1, price: 200, productId: "456" },
       }));
-      expect(toast.success).toHaveBeenCalledWith("Remove from Cart Successfully");
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith("Remove from Cart Successfully");
+      });
     });
   });
 
@@ -182,7 +203,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.updateQuantity("test-product", 5));
 
       await waitFor(() => expect(result.current.cart["test-product"].quantity).toBe(5));
-      expect(toast.success).toHaveBeenCalledWith("Update Cart Quantity Successfully");
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith("Update Cart Quantity Successfully");
+      });
     });
 
     it("should remove item when quantity is 0", async () => {
@@ -209,7 +233,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.updateQuantity("test-product", 10));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Error updating quantity: Not enough inventory"));
-      expect(result.current.cart["test-product"].quantity).toBe(5);
+
+      await waitFor(() => {
+        expect(result.current.cart["test-product"].quantity).toBe(5);
+      });
     });
 
     it("should reject if price is missing", async () => {
@@ -223,7 +250,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.updateQuantity("test-product", 5));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Error added to cart: Price of product not available"));
-      expect(result.current.cart["test-product"].quantity).toBe(2);
+
+      await waitFor(() => {
+        expect(result.current.cart["test-product"].quantity).toBe(2);
+      });
     });
 
     it("should reject if product does not exist", async () => {
@@ -237,7 +267,10 @@ describe("Cart Context", () => {
       await act(async () => await result.current.updateQuantity("test-product", 5));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Item does not exist"));
-      expect(result.current.cart["test-product"].quantity).toBe(2);
+
+      await waitFor(() => {
+        expect(result.current.cart["test-product"].quantity).toBe(2);
+      });
     });
   });
 
@@ -255,7 +288,10 @@ describe("Cart Context", () => {
       act(() => result.current.clearCart());
 
       await waitFor(() => expect(result.current.cart).toEqual({}));
-      expect(toast.success).toHaveBeenCalledWith("Cart Cleared Successfully");
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith("Cart Cleared Successfully");
+      });
     });
   });
 });

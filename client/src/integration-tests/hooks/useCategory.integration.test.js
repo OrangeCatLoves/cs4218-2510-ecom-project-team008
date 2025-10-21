@@ -61,6 +61,14 @@ describe("useCategory Hook Integration Tests", () => {
       // Render Header with real providers and real useCategory hook
       renderWithProviders(<Header />);
 
+      // Wait for API call to complete and state to settle
+      await waitFor(() => {
+        const categoryCall = mockAxios.history.get.find(
+          (call) => call.url === "/api/v1/category/get-category"
+        );
+        expect(categoryCall).toBeDefined();
+      });
+
       // Wait for categories to load and render
       await waitFor(() => {
         expect(screen.getByText("Electronics")).toBeInTheDocument();
@@ -102,6 +110,14 @@ describe("useCategory Hook Integration Tests", () => {
       // Render Header - should not crash
       renderWithProviders(<Header />);
 
+      // Wait for API call to be made
+      await waitFor(() => {
+        const categoryCall = mockAxios.history.get.find(
+          (call) => call.url === "/api/v1/category/get-category"
+        );
+        expect(categoryCall).toBeDefined();
+      });
+
       // Wait for error to be caught and logged
       await waitFor(() => {
         expect(consoleLogSpy).toHaveBeenCalled();
@@ -133,6 +149,14 @@ describe("useCategory Hook Integration Tests", () => {
 
       // Render Categories page with real providers and real useCategory hook
       renderWithProviders(<Categories />);
+
+      // Wait for API call to complete and state to settle
+      await waitFor(() => {
+        const categoryCall = mockAxios.history.get.find(
+          (call) => call.url === "/api/v1/category/get-category"
+        );
+        expect(categoryCall).toBeDefined();
+      });
 
       // Wait for categories to load and render (both in header and page body)
       await waitFor(() => {
@@ -192,6 +216,14 @@ describe("useCategory Hook Integration Tests", () => {
 
       // Render Categories page - should not crash
       renderWithProviders(<Categories />);
+
+      // Wait for API call to be made
+      await waitFor(() => {
+        const categoryCall = mockAxios.history.get.find(
+          (call) => call.url === "/api/v1/category/get-category"
+        );
+        expect(categoryCall).toBeDefined();
+      });
 
       // Wait for error to be caught and logged
       await waitFor(() => {

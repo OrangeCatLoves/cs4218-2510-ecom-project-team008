@@ -36,7 +36,11 @@ async function createTestProduct(page, authToken, productData) {
     data: { name: 'Test Category' }
   });
   const categoryJson = await categoryResponse.json();
-  const categoryId = categoryJson.category._id;
+  const categoryId = categoryJson.category?._id;
+
+  if (!categoryId) {
+    throw new Error(`Failed to get category ID. Response was: ${JSON.stringify(categoryJson)}`);
+  }
 
   // Create product
   const productResponse = await page.request.post('/api/v1/product/create-product', {
@@ -439,11 +443,15 @@ test.describe('Cart - Error Scenarios', () => {
       quantity: 2
     });
 
+    // Logout so user becomes a guest (product creation was done as admin)
+    await page.evaluate(() => {
+      localStorage.removeItem('auth');
+    });
+
     // Navigate to homepage and reload to ensure fresh product list
     await page.goto('/');
     await page.reload();
 
-    // Find and click the newly created product's ADD TO CART button by searching for product name
     // Wait for products to load first
     await page.waitForSelector('.card', { timeout: 10000 });
 
@@ -501,6 +509,11 @@ test.describe('Cart - Error Scenarios', () => {
     const authToken = await loginAsAdmin(page);
     const deleteResponse = await page.request.delete(`/api/v1/product/delete-product/${productSlug}`, {
       headers: { 'Authorization': authToken }
+    });
+
+    // Logout to become guest again
+    await page.evaluate(() => {
+      localStorage.removeItem('auth');
     });
 
     // Navigate back to homepage as guest then go to cart
