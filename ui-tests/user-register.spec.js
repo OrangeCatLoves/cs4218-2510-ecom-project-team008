@@ -5,6 +5,7 @@ import {normalUsers} from "../config/populateDb";
 test.describe.configure({ mode: 'serial' });
 
 test.beforeEach(async ({ page }) => {
+  await clearAndRepopulateDB();
   await page.goto('./register');
 });
 

@@ -9,7 +9,6 @@ const connectDB = async () => {
     try {
         if (process.env.NODE_ENV === "test") {
             mongoServer = await MongoMemoryServer.create();
-            console.log("CREATED MEMORty TSERyER")
             const uri = mongoServer.getUri();
             await mongoose.connect(uri);
             await populate();

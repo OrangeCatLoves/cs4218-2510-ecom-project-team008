@@ -1,10 +1,12 @@
 /* eslint-disable notice/notice */
 import { test, expect } from '@playwright/test';
 import {adminUsers} from "../config/populateDb";
+import {clearAndRepopulateDB} from "../config/db";
 
 test.describe('Admin Dashboard', () => {
   const adminInDb = adminUsers[0];
   test.beforeEach(async ({ page }) => {
+    await clearAndRepopulateDB();
     await page.goto('/login');
     await page.getByPlaceholder('Enter Your Email').fill(adminInDb.email);
     await page.getByPlaceholder('Enter Your Password').fill(adminInDb.password);
