@@ -69,9 +69,22 @@ const HomePage = () => {
   const loadMore = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
+      if (checked.length || radio.length) {
+        // Build query params for filtered pagination
+        const params = new URLSearchParams();
+        if (checked.length) params.append('categories', checked.join(','));
+        if (radio.length) {
+          params.append('minPrice', radio[0]);
+          params.append('maxPrice', radio[1]);
+        }
+        params.append('page', page);
+        const { data } = await axios.get(`/api/v1/product/product-filters?${params.toString()}`);
+        setProducts([...products, ...data?.products]);
+      } else {
+        const { data } = await axios.get(`/api/v1/product/product-list/${page}`);
+        setProducts([...products, ...data?.products]);
+      }
       setLoading(false);
-      setProducts([...products, ...data?.products]);
     } catch (error) {
       console.log(error);
       setLoading(false);
