@@ -118,7 +118,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "npm run start",
+      command: "cross-env NODE_ENV=test npm run start",
       url: "http://localhost:6060",
       timeout: 120 * 1000,
       reuseExistingServer: !process.env.CI,

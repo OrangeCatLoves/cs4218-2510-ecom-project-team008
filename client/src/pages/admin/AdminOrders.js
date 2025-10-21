@@ -56,7 +56,7 @@ const AdminOrders = () => {
           <h1 className="text-center">All Orders</h1>
           {orders?.map((o, i) => {
             return (
-              <div className="border shadow" key={o._id}>
+              <div data-testid="order" className="border shadow" key={o._id}>
                 <table className="table">
                   <thead>
                     <tr>
@@ -74,6 +74,7 @@ const AdminOrders = () => {
                       <td>
                         <Select
                           variant="borderless"
+                          data-testid="order-status-option"
                           onChange={(value) => handleChange(o._id, value)}
                           defaultValue={o?.status}
                         >
@@ -93,7 +94,7 @@ const AdminOrders = () => {
                 </table>
                 <div className="container">
                   {o?.products?.map((p, i) => (
-                    <div className="row mb-2 p-3 card flex-row" key={p._id}>
+                    <div data-testid="product" className="row mb-2 p-3 card flex-row" key={p._id}>
                       <div className="col-md-4">
                         <img
                           src={`/api/v1/product/product-photo/${p._id}`}
@@ -104,9 +105,9 @@ const AdminOrders = () => {
                         />
                       </div>
                       <div className="col-md-8">
-                        <p>{p.name}</p>
-                        <p>{p.description.substring(0, 30)}</p>
-                        <p>Price : {p.price}</p>
+                        <p data-testid="product-name">{p.name}</p>
+                        <p data-testid="product-description">{p.description.substring(0, 30)}</p>
+                        <p data-testid="product-price">Price : {p.price}</p>
                       </div>
                     </div>
                   ))}
