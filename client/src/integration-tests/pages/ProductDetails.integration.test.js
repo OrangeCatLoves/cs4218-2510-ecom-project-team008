@@ -1,4 +1,4 @@
-// ProductDetails.integration.test.js
+// src/integration-tests/pages/ProductDetails.integration.test.js
 import React from 'react';
 
 // Polyfill for mongodb driver under jsdom
@@ -6,7 +6,7 @@ import { TextEncoder, TextDecoder } from 'util';
 if (!global.TextEncoder) global.TextEncoder = TextEncoder;
 if (!global.TextDecoder) global.TextDecoder = TextDecoder;
 
-// Stub Layout so Header/useAuth/useCart do not mount in tests
+// Stub Layout so Header/useAuth/useCart UI chrome doesn’t mount
 jest.mock('../../components/Layout', () => ({
   __esModule: true,
   default: ({ children }) => <>{children}</>,
@@ -16,17 +16,16 @@ jest.mock('../../components/Layout.js', () => ({
   default: ({ children }) => <>{children}</>,
 }));
 
-// Mock braintree so importing productController doesn't require secrets
+// Mock braintree so importing productController doesn’t require secrets
 jest.mock('braintree', () => ({
   BraintreeGateway: function BraintreeGateway() {},
   Environment: { Sandbox: {} },
 }));
 
 import axios from 'axios';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import '@testing-library/jest-dom';
-
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -34,11 +33,11 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 
 import ProductDetails from '../../pages/ProductDetails.js';
 
-// real models from the backend (project root)
+// real models
 import Category from '../../../../models/categoryModel.js';
 import Product from '../../../../models/productModel.js';
 
-// only the controllers ProductDetails uses
+// controllers used by ProductDetails
 import {
   getSingleProductController,
   productPhotoController,
@@ -46,7 +45,10 @@ import {
   productCategoryController,
 } from '../../../../controllers/productController.js';
 
-/** ---------------- Minimal app exposing only endpoints ProductDetails calls ---------------- */
+// Providers needed by ProductDetails (useCart -> CartProvider -> AuthProvider)
+import { AuthProvider } from '../../context/auth';
+import { CartProvider } from '../../context/cart';
+
 let mongo;
 let app;
 let server;
@@ -78,7 +80,6 @@ const startApi = async () => {
 
 const stopApi = async () => {
   if (server) await new Promise((r) => server.close(r));
-  // restore globals
   axios.defaults.baseURL = prevBaseURL;
   if (prevApi === undefined) delete process.env.REACT_APP_API;
   else process.env.REACT_APP_API = prevApi;
@@ -94,13 +95,16 @@ const clearDb = async () => {
 const renderAt = (initialRoute) =>
   render(
     <MemoryRouter initialEntries={[initialRoute]}>
-      <Routes>
-        <Route path="/product/:slug" element={<ProductDetails />} />
-      </Routes>
+      <AuthProvider>
+        <CartProvider>
+          <Routes>
+            <Route path="/product/:slug" element={<ProductDetails />} />
+          </Routes>
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>
   );
 
-/** ---------------- Test suite ---------------- */
 describe('ProductDetails — true integration', () => {
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
@@ -120,8 +124,8 @@ describe('ProductDetails — true integration', () => {
   });
 
   test('renders product details and related products from live API', async () => {
-    // Arrange
     const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
+
     const main = await Product.create({
       name: 'Gaming Laptop',
       slug: 'gaming-laptop',
@@ -131,6 +135,7 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
+
     const rel1 = await Product.create({
       name: 'Gaming Mouse',
       slug: 'gaming-mouse',
@@ -141,15 +146,19 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
+
     const rel2 = await Product.create({
       name: 'Gaming Keyboard',
       slug: 'gaming-keyboard',
-      description: 'Mechanical keyboard with customizable RGB lighting and macro keys for gaming',
+      description:
+        'Mechanical keyboard with customizable RGB lighting and macro keys for gaming',
       price: 120,
       quantity: 30,
       shipping: true,
       category: cat._id,
     });
+
+    // unrelated category product should not appear
     const otherCat = await Category.create({ name: 'Books', slug: 'books' });
     await Product.create({
       name: 'Novel',
@@ -161,12 +170,12 @@ describe('ProductDetails — true integration', () => {
       category: otherCat._id,
     });
 
-    // Act
     renderAt(`/product/${main.slug}`);
 
-    // Assert
-    await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByAltText('Gaming Laptop')).toBeInTheDocument());
+    // prefer-find-by fixes
+    await screen.findByRole('heading', { name: 'Product Details' });
+    await screen.findByAltText('Gaming Laptop');
+
     expect(screen.getByText(/Name\s*:\s*Gaming Laptop/)).toBeInTheDocument();
     expect(screen.getByText(/Description\s*:\s*High-performance gaming laptop/)).toBeInTheDocument();
     expect(screen.getByText(/Price\s*:\s*\$1,500\.00/)).toBeInTheDocument();
@@ -175,11 +184,10 @@ describe('ProductDetails — true integration', () => {
     const mainImg = screen.getByAltText('Gaming Laptop');
     expect(mainImg).toHaveAttribute('src', `/api/v1/product/product-photo/${main._id}`);
 
-    await waitFor(() => {
-      expect(screen.queryByText('No Similar Products found')).not.toBeInTheDocument();
-      expect(screen.getByText('Gaming Mouse')).toBeInTheDocument();
-      expect(screen.getByText('Gaming Keyboard')).toBeInTheDocument();
-    });
+    // related list
+    await screen.findByText('Gaming Mouse');
+    await screen.findByText('Gaming Keyboard');
+    expect(screen.queryByText('No Similar Products found')).not.toBeInTheDocument();
 
     const mouseImg = screen.getByAltText('Gaming Mouse');
     expect(mouseImg).toHaveAttribute('src', `/api/v1/product/product-photo/${rel1._id}`);
@@ -191,8 +199,8 @@ describe('ProductDetails — true integration', () => {
   });
 
   test('navigates via "More Details" and refetches by new slug', async () => {
-    // Arrange
     const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
+
     const p1 = await Product.create({
       name: 'Product One',
       slug: 'product-one',
@@ -202,6 +210,7 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
+
     const p2 = await Product.create({
       name: 'Product Two',
       slug: 'product-two',
@@ -212,25 +221,21 @@ describe('ProductDetails — true integration', () => {
       category: cat._id,
     });
 
-    // Act
     renderAt(`/product/${p1.slug}`);
 
-    // Assert
-    await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByAltText('Product One')).toBeInTheDocument());
+    await screen.findByRole('heading', { name: 'Product Details' });
+    await screen.findByAltText('Product One');
     expect(screen.getByText(/Name\s*:\s*Product One/)).toBeInTheDocument();
 
-    await waitFor(() => expect(screen.getByText('Product Two')).toBeInTheDocument());
-    const card = screen.getByText('Product Two').closest('.card');
-    const moreBtn = within(card).getByRole('button', { name: /More Details/i });
+    const p2Card = await screen.findByText('Product Two').then((n) => n.closest('.card'));
+    const moreBtn = within(p2Card).getByRole('button', { name: /More Details/i });
     fireEvent.click(moreBtn);
 
-    await waitFor(() => expect(screen.getByText(/Name\s*:\s*Product Two/)).toBeInTheDocument());
+    await screen.findByText(/Name\s*:\s*Product Two/);
     expect(screen.getByText('$200.00')).toBeInTheDocument();
   });
 
   test('shows "No Similar Products found" when none exist', async () => {
-    // Arrange
     const cat = await Category.create({ name: 'Solo', slug: 'solo' });
     const only = await Product.create({
       name: 'Lone Item',
@@ -242,19 +247,17 @@ describe('ProductDetails — true integration', () => {
       category: cat._id,
     });
 
-    // Act
     renderAt(`/product/${only.slug}`);
 
-    // Assert
-    await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByAltText('Lone Item')).toBeInTheDocument());
+    await screen.findByRole('heading', { name: 'Product Details' });
+    await screen.findByAltText('Lone Item');
     expect(screen.getByText(/Name\s*:\s*Lone Item/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText('No Similar Products found')).toBeInTheDocument());
+    await screen.findByText('No Similar Products found');
   });
 
   test('truncates related description to 60 chars with ellipsis', async () => {
-    // Arrange
     const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
+
     const main = await Product.create({
       name: 'Main',
       slug: 'main',
@@ -264,6 +267,7 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
+
     const long = 'x'.repeat(61);
     await Product.create({
       name: 'Rel',
@@ -275,29 +279,24 @@ describe('ProductDetails — true integration', () => {
       category: cat._id,
     });
 
-    // Act
     renderAt(`/product/${main.slug}`);
 
-    // Assert
-    await waitFor(() => expect(screen.getByText('Rel')).toBeInTheDocument());
-    const relCard = screen.getByText('Rel').closest('.card');
+    const relCard = await screen.findByText('Rel').then((n) => n.closest('.card'));
     const text = within(relCard).getByText(/x+/).textContent;
     expect(text.endsWith('...')).toBe(true);
     expect(text.length).toBeLessThanOrEqual(63);
   });
 
   test('handles missing product gracefully (backend returns null)', async () => {
-    // Arrange + Act
     renderAt('/product/non-existent-slug');
 
-    // Assert
-    await waitFor(() => expect(screen.getByText('Product Details')).toBeInTheDocument());
+    await screen.findByRole('heading', { name: 'Product Details' });
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
   test('after navigation, main image src updates to new product photo', async () => {
-    // Arrange
     const cat = await Category.create({ name: 'Electronics', slug: 'electronics' });
+
     const p1 = await Product.create({
       name: 'Alpha',
       slug: 'alpha',
@@ -307,6 +306,7 @@ describe('ProductDetails — true integration', () => {
       shipping: true,
       category: cat._id,
     });
+
     const p2 = await Product.create({
       name: 'Beta',
       slug: 'beta',
@@ -317,20 +317,15 @@ describe('ProductDetails — true integration', () => {
       category: cat._id,
     });
 
-    // Act
     renderAt(`/product/${p1.slug}`);
 
-    // Assert
-    await waitFor(() => expect(screen.getByAltText('Alpha')).toBeInTheDocument());
-    const before = screen.getByAltText('Alpha');
-    expect(before).toHaveAttribute('src', `/api/v1/product/product-photo/${p1._id}`);
+    const beforeImg = await screen.findByAltText('Alpha');
+    expect(beforeImg).toHaveAttribute('src', `/api/v1/product/product-photo/${p1._id}`);
 
-    await waitFor(() => expect(screen.getByText('Beta')).toBeInTheDocument());
-    const card = screen.getByText('Beta').closest('.card');
-    fireEvent.click(within(card).getByRole('button', { name: /More Details/i }));
+    const betaCard = await screen.findByText('Beta').then((n) => n.closest('.card'));
+    fireEvent.click(within(betaCard).getByRole('button', { name: /More Details/i }));
 
-    await waitFor(() => expect(screen.getByAltText('Beta')).toBeInTheDocument());
-    const after = screen.getByAltText('Beta');
-    expect(after).toHaveAttribute('src', `/api/v1/product/product-photo/${p2._id}`);
+    const afterImg = await screen.findByAltText('Beta');
+    expect(afterImg).toHaveAttribute('src', `/api/v1/product/product-photo/${p2._id}`);
   });
 });
