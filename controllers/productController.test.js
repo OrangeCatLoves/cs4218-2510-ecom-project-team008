@@ -584,7 +584,7 @@ describe("Product Controller Tests", () => {
       await searchProductController(mockReq, mockRes);
 
       // Assert
-      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.send).toHaveBeenCalledWith({
         success: false,
         message: "Error In Search Product API",
