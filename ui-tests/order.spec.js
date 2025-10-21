@@ -33,11 +33,11 @@ test.describe("User Order Dashboard", () => {
     await page.getByRole('link', { name: 'Cart' }).click();
     await page.getByRole('button', { name: 'Paying with Card' }).click();
     await page.locator('iframe[name="braintree-hosted-field-number"]').contentFrame().getByRole('textbox', { name: 'Credit Card Number' }).click();
-    await page.locator('iframe[name="braintree-hosted-field-number"]').contentFrame().getByRole('textbox', { name: 'Credit Card Number' }).fill('3714 496353 98431');
+    await page.locator('iframe[name="braintree-hosted-field-number"]').contentFrame().getByRole('textbox', { name: 'Credit Card Number' }).fill('4000007020000003');
     await page.locator('iframe[name="braintree-hosted-field-expirationDate"]').contentFrame().getByRole('textbox', { name: 'Expiration Date' }).click();
-    await page.locator('iframe[name="braintree-hosted-field-expirationDate"]').contentFrame().getByRole('textbox', { name: 'Expiration Date' }).fill('0130');
+    await page.locator('iframe[name="braintree-hosted-field-expirationDate"]').contentFrame().getByRole('textbox', { name: 'Expiration Date' }).fill('0830');
     await page.locator('iframe[name="braintree-hosted-field-cvv"]').contentFrame().getByRole('textbox', { name: 'CVV' }).click();
-    await page.locator('iframe[name="braintree-hosted-field-cvv"]').contentFrame().getByRole('textbox', { name: 'CVV' }).fill('1234');
+    await page.locator('iframe[name="braintree-hosted-field-cvv"]').contentFrame().getByRole('textbox', { name: 'CVV' }).fill('123');
     await page.getByRole('button', { name: 'Make Payment' }).click();
 
     await expect(page.getByTestId("order")).toHaveCount(1);
@@ -83,11 +83,11 @@ test.describe("Admin Order Dashboard", () => {
     await page.getByRole('link', { name: 'Cart' }).click();
     await page.getByRole('button', { name: 'Paying with Card' }).click();
     await page.locator('iframe[name="braintree-hosted-field-number"]').contentFrame().getByRole('textbox', { name: 'Credit Card Number' }).click();
-    await page.locator('iframe[name="braintree-hosted-field-number"]').contentFrame().getByRole('textbox', { name: 'Credit Card Number' }).fill('3714 496353 98431');
+    await page.locator('iframe[name="braintree-hosted-field-number"]').contentFrame().getByRole('textbox', { name: 'Credit Card Number' }).fill('4000007020000003');
     await page.locator('iframe[name="braintree-hosted-field-expirationDate"]').contentFrame().getByRole('textbox', { name: 'Expiration Date' }).click();
-    await page.locator('iframe[name="braintree-hosted-field-expirationDate"]').contentFrame().getByRole('textbox', { name: 'Expiration Date' }).fill('0130');
+    await page.locator('iframe[name="braintree-hosted-field-expirationDate"]').contentFrame().getByRole('textbox', { name: 'Expiration Date' }).fill('0830');
     await page.locator('iframe[name="braintree-hosted-field-cvv"]').contentFrame().getByRole('textbox', { name: 'CVV' }).click();
-    await page.locator('iframe[name="braintree-hosted-field-cvv"]').contentFrame().getByRole('textbox', { name: 'CVV' }).fill('1234');
+    await page.locator('iframe[name="braintree-hosted-field-cvv"]').contentFrame().getByRole('textbox', { name: 'CVV' }).fill('123');
     await page.getByRole('button', { name: 'Make Payment' }).click();
 
     await page.getByRole('button', { name: tempUser.name }).click();
@@ -103,10 +103,10 @@ test.describe("Admin Order Dashboard", () => {
     await page.getByRole('link', {name: 'Orders'}).click();
     await expect(page.getByTestId("order")).toHaveCount(1);
 
-    await expect(page.getByTestId("order-status-option")).toHaveText("Processing");
+    await expect(page.getByTestId("order-status-option")).toHaveText("Not Process");
     await page.getByTestId("order-status-option").click();
-    await page.getByText('Shipped').nth(1).click();
+    await page.getByText('Processing').nth(1).click();
     await page.reload();
-    await expect(page.getByTestId("order-status-option")).toHaveText("Shipped");
+    await expect(page.getByTestId("order-status-option")).toHaveText("Processing");
   });
 })
