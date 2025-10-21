@@ -23,7 +23,7 @@ module.exports = {
   testMatch: ["<rootDir>/client/src/**/*.test.js"],
 
   testPathIgnorePatterns: [
-    "<rootDir>/client/src/integration-tests/",
+    "/client/src/integration-tests/pages/ProductDetails\\.integration\\.test\\.js$",
   ],
 
   // jest code coverage
