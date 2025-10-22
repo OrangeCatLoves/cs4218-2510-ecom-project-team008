@@ -20,9 +20,9 @@ function slugify(s) {
 
 async function ensureCategoryExists(page, name) {
   await page.goto("/dashboard/admin/create-category");
-  await page.getByPlaceholder(/enter new category/i).fill(name);
+  await page.getByPlaceholder("enter new category"i).fill(name);
   await page
-    .getByRole("button", { name: /create category/i })
+    .getByRole("button", { name: "CREATE CATEGORY"i })
     .click()
     .catch(() => {});
   await expect(page.getByText(name)).toBeVisible({ timeout: 10000 });
@@ -44,8 +44,8 @@ test.describe("Create Product Page - UI Tests", () => {
 
   test("validation prevents empty submission", async ({ page }) => {
     await page.goto("/dashboard/admin/create-product");
-    await page.getByRole("button", { name: /create product/i }).click();
-    await expect(page.getByText(/product name is required/i)).toBeVisible();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
+    await expect(page.getByText("Product name is required")).toBeVisible();
   });
 
   test("client-side validations: price > 0, quantity >= 0, category required", async ({
@@ -53,21 +53,21 @@ test.describe("Create Product Page - UI Tests", () => {
   }) => {
     await page.goto("/dashboard/admin/create-product");
 
-    await page.getByPlaceholder(/write a name/i).fill("X");
-    await page.getByPlaceholder(/write a description/i).fill("Y");
-    await page.getByPlaceholder(/write a price/i).fill("0");
-    await page.getByPlaceholder(/write a quantity/i).fill("-5");
+    await page.getByPlaceholder("write a name").fill("X");
+    await page.getByPlaceholder("write a description").fill("Y");
+    await page.getByPlaceholder("write a price").fill("0");
+    await page.getByPlaceholder("write a quantity").fill("-5");
 
-    await page.getByRole("button", { name: /create product/i }).click();
-    await expect(page.getByText(/price must be greater than 0/i)).toBeVisible();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
+    await expect(page.getByText("Price must be greater than 0")).toBeVisible();
 
-    await page.getByPlaceholder(/write a price/i).fill("");
-    await page.getByPlaceholder(/write a price/i).fill("100");
-    await page.getByPlaceholder(/write a quantity/i).fill("");
-    await page.getByPlaceholder(/write a quantity/i).fill("5");
+    await page.getByPlaceholder("write a price").fill("");
+    await page.getByPlaceholder("write a price").fill("100");
+    await page.getByPlaceholder("write a quantity").fill("");
+    await page.getByPlaceholder("write a quantity").fill("5");
 
-    await page.getByRole("button", { name: /create product/i }).click();
-    await expect(page.getByText(/please select a category/i)).toBeVisible();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
+    await expect(page.getByText("Please select a category")).toBeVisible();
   });
 
   test("creates a product end-to-end, verifies on list and update page (shipping: Yes)", async ({
@@ -79,17 +79,17 @@ test.describe("Create Product Page - UI Tests", () => {
     await page.goto("/dashboard/admin/create-product");
 
     const name = `E2E Gaming Laptop ${Date.now()}`;
-    await page.getByPlaceholder(/write a name/i).fill(name);
+    await page.getByPlaceholder("write a name").fill(name);
     await page
-      .getByPlaceholder(/write a description/i)
+      .getByPlaceholder("write a description")
       .fill("High-end gaming laptop");
-    await page.getByPlaceholder(/write a price/i).fill("1500");
-    await page.getByPlaceholder(/write a quantity/i).fill("5");
+    await page.getByPlaceholder("write a price").fill("1500");
+    await page.getByPlaceholder("write a quantity").fill("5");
 
-    await page.getByText(/select a category/i).click();
+    await page.getByText("select a category").click();
     await page.getByText(new RegExp(`^${catName}$`, "i")).click();
 
-    await page.getByText(/select shipping/i).click();
+    await page.getByText("select shipping").click();
     await page.getByText(/^yes$/i).click();
 
     await page.setInputFiles('input[type="file"][name="photo"]', {
@@ -98,9 +98,9 @@ test.describe("Create Product Page - UI Tests", () => {
       buffer: tinyPngPayload(),
     });
 
-    await page.getByRole("button", { name: /create product/i }).click();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
 
-    await expect(page.getByText(/product created successfully/i)).toBeVisible({
+    await expect(page.getByText("Product created successfully")).toBeVisible({
       timeout: 15000,
     });
     await expect(page).toHaveURL(/\/dashboard\/admin\/products$/i, {
@@ -127,7 +127,7 @@ test.describe("Create Product Page - UI Tests", () => {
       await created.click();
     }
 
-    await expect(page.getByText(/update product/i)).toBeVisible({
+    await expect(page.getByText("UPDATE PRODUCT"i)).toBeVisible({
       timeout: 15000,
     });
     await expect(page.getByDisplayValue(name)).toBeVisible();
@@ -146,15 +146,15 @@ test.describe("Create Product Page - UI Tests", () => {
     await page.goto("/dashboard/admin/create-product");
 
     const name = `E2E Mouse ${Date.now()}`;
-    await page.getByPlaceholder(/write a name/i).fill(name);
-    await page.getByPlaceholder(/write a description/i).fill("Wireless mouse");
-    await page.getByPlaceholder(/write a price/i).fill("29.9");
-    await page.getByPlaceholder(/write a quantity/i).fill("10");
+    await page.getByPlaceholder("write a name").fill(name);
+    await page.getByPlaceholder("write a description").fill("Wireless mouse");
+    await page.getByPlaceholder("write a price").fill("29.9");
+    await page.getByPlaceholder("write a quantity").fill("10");
 
-    await page.getByText(/select a category/i).click();
+    await page.getByText("select a category").click();
     await page.getByText(new RegExp(`^${catName}$`, "i")).click();
 
-    await page.getByText(/select shipping/i).click();
+    await page.getByText("select shipping").click();
     await page.getByText(/^no$/i).click();
 
     await page.setInputFiles('input[type="file"][name="photo"]', {
@@ -163,9 +163,9 @@ test.describe("Create Product Page - UI Tests", () => {
       buffer: tinyPngPayload(),
     });
 
-    await page.getByRole("button", { name: /create product/i }).click();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
 
-    await expect(page.getByText(/product created successfully/i)).toBeVisible({
+    await expect(page.getByText("Product created successfully")).toBeVisible({
       timeout: 15000,
     });
     await expect(page).toHaveURL(/\/dashboard\/admin\/products$/i);
@@ -185,7 +185,7 @@ test.describe("Create Product Page - UI Tests", () => {
       await page.getByText(name, { exact: true }).first().click();
     }
 
-    await expect(page.getByText(/update product/i)).toBeVisible({
+    await expect(page.getByText("UPDATE PRODUCT"i)).toBeVisible({
       timeout: 15000,
     });
     await expect(page.getByText(/no/i)).toBeVisible();
@@ -215,17 +215,17 @@ test.describe("Create Product Page - UI Tests", () => {
     await page.goto("/dashboard/admin/create-product");
 
     const name = `E2E Keyboard ${Date.now()}`;
-    await page.getByPlaceholder(/write a name/i).fill(name);
+    await page.getByPlaceholder("write a name").fill(name);
     await page
-      .getByPlaceholder(/write a description/i)
+      .getByPlaceholder("write a description")
       .fill("Mechanical keyboard");
-    await page.getByPlaceholder(/write a price/i).fill("120");
-    await page.getByPlaceholder(/write a quantity/i).fill("12");
+    await page.getByPlaceholder("write a price").fill("120");
+    await page.getByPlaceholder("write a quantity").fill("12");
 
-    await page.getByText(/select a category/i).click();
+    await page.getByText("select a category").click();
     await page.getByText(new RegExp(`^${catName}$`, "i")).click();
 
-    await page.getByText(/select shipping/i).click();
+    await page.getByText("select shipping").click();
     await page.getByText(/^yes$/i).click();
 
     await page.setInputFiles('input[type="file"][name="photo"]', {
@@ -234,9 +234,9 @@ test.describe("Create Product Page - UI Tests", () => {
       buffer: tinyPngPayload(),
     });
 
-    await page.getByRole("button", { name: /create product/i }).click();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
 
-    await expect(page.getByText(/product created successfully/i)).toBeVisible({
+    await expect(page.getByText("Product created successfully")).toBeVisible({
       timeout: 15000,
     });
     await expect(page).toHaveURL(/\/dashboard\/admin\/products$/i);
@@ -260,11 +260,11 @@ test.describe("Create Product Page - UI Tests", () => {
       await anchor.click();
     }
 
-    await expect(page.getByText(/update product/i)).toBeVisible({
+    await expect(page.getByText("UPDATE PRODUCT"i)).toBeVisible({
       timeout: 15000,
     });
 
-    const priceBox = page.getByPlaceholder(/write a price/i);
+    const priceBox = page.getByPlaceholder("write a price");
     await priceBox.fill("");
     await priceBox.fill("150");
 
@@ -274,10 +274,10 @@ test.describe("Create Product Page - UI Tests", () => {
       buffer: tinyPngPayload(),
     });
 
-    await page.getByRole("button", { name: /update product/i }).click();
+    await page.getByRole("button", { name: "UPDATE PRODUCT" }).click();
 
     await expect(
-      page.getByText(/product updated successfully|product updated/i),
+      page.getByText("Product Updated Successfully")
     ).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveURL(/\/dashboard\/admin\/products$/i, {
       timeout: 15000,
@@ -296,15 +296,15 @@ test.describe("Create Product Page - UI Tests", () => {
     await page.goto("/dashboard/admin/create-product");
 
     const name = `E2E Headset ${Date.now()}`;
-    await page.getByPlaceholder(/write a name/i).fill(name);
-    await page.getByPlaceholder(/write a description/i).fill("Gaming headset");
-    await page.getByPlaceholder(/write a price/i).fill("80");
-    await page.getByPlaceholder(/write a quantity/i).fill("7");
+    await page.getByPlaceholder("write a name").fill(name);
+    await page.getByPlaceholder("write a description").fill("Gaming headset");
+    await page.getByPlaceholder("write a price").fill("80");
+    await page.getByPlaceholder("write a quantity").fill("7");
 
-    await page.getByText(/select a category/i).click();
+    await page.getByText("select a category").click();
     await page.getByText(new RegExp(`^${catName}$`, "i")).click();
 
-    await page.getByText(/select shipping/i).click();
+    await page.getByText("select shipping").click();
     await page.getByText(/^no$/i).click();
 
     await page.setInputFiles('input[type="file"][name="photo"]', {
@@ -313,8 +313,8 @@ test.describe("Create Product Page - UI Tests", () => {
       buffer: tinyPngPayload(),
     });
 
-    await page.getByRole("button", { name: /create product/i }).click();
-    await expect(page.getByText(/product created successfully/i)).toBeVisible({
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
+    await expect(page.getByText("Product created successfully")).toBeVisible({
       timeout: 15000,
     });
 
@@ -322,7 +322,7 @@ test.describe("Create Product Page - UI Tests", () => {
     const cardHandle = await card.elementHandle();
     if (cardHandle) {
       const linkHandle = await cardHandle.evaluateHandle((el) =>
-        el.closest("a"),
+        el.closest("a")
       );
       const linkEl = linkHandle.asElement();
       if (linkEl) {
@@ -340,9 +340,9 @@ test.describe("Create Product Page - UI Tests", () => {
     }
 
     await expect(
-      page.getByRole("button", { name: /delete product/i }),
+      page.getByRole("button", { name: "DELETE PRODUCT" })
     ).toBeVisible({ timeout: 15000 });
-    await page.getByRole("button", { name: /delete product/i }).click();
+    await page.getByRole("button", { name: "DELETE PRODUCT" }).click();
 
     const modal = page.locator('.ant-modal, [role="dialog"]').first();
     await expect(modal).toBeVisible({ timeout: 10000 });
@@ -350,7 +350,7 @@ test.describe("Create Product Page - UI Tests", () => {
     const deleteBtn = modal.getByRole("button", { name: /^delete$/i }).last();
     await deleteBtn.click();
 
-    await expect(page.getByText(/product deleted successfully/i)).toBeVisible({
+    await expect(page.getByText("Product deleted successfully")).toBeVisible({
       timeout: 15000,
     });
     await expect(page).toHaveURL(/\/dashboard\/admin\/products$/i, {
@@ -365,12 +365,12 @@ test.describe("Create Product Page - UI Tests", () => {
     await page.goto("/dashboard/admin/create-product");
 
     await expect(
-      page.getByRole("heading", { name: /create product/i }),
+      page.getByRole("heading", { name: "CREATE PRODUCT" })
     ).toBeVisible();
-    await expect(page.getByPlaceholder(/write a name/i)).toBeVisible();
-    await expect(page.getByPlaceholder(/write a description/i)).toBeVisible();
-    await expect(page.getByPlaceholder(/write a price/i)).toBeVisible();
-    await expect(page.getByPlaceholder(/write a quantity/i)).toBeVisible();
+    await expect(page.getByPlaceholder("write a name")).toBeVisible();
+    await expect(page.getByPlaceholder("write a description")).toBeVisible();
+    await expect(page.getByPlaceholder("write a price")).toBeVisible();
+    await expect(page.getByPlaceholder("write a quantity")).toBeVisible();
   });
 
   test("product with decimal price is created correctly", async ({ page }) => {
@@ -380,15 +380,15 @@ test.describe("Create Product Page - UI Tests", () => {
     await page.goto("/dashboard/admin/create-product");
 
     const name = `E2E Cable ${Date.now()}`;
-    await page.getByPlaceholder(/write a name/i).fill(name);
-    await page.getByPlaceholder(/write a description/i).fill("USB Cable");
-    await page.getByPlaceholder(/write a price/i).fill("9.99");
-    await page.getByPlaceholder(/write a quantity/i).fill("100");
+    await page.getByPlaceholder("write a name").fill(name);
+    await page.getByPlaceholder("write a description").fill("USB Cable");
+    await page.getByPlaceholder("write a price").fill("9.99");
+    await page.getByPlaceholder("write a quantity").fill("100");
 
-    await page.getByText(/select a category/i).click();
+    await page.getByText("select a category").click();
     await page.getByText(new RegExp(`^${catName}$`, "i")).click();
 
-    await page.getByText(/select shipping/i).click();
+    await page.getByText("select shipping").click();
     await page.getByText(/^yes$/i).click();
 
     await page.setInputFiles('input[type="file"][name="photo"]', {
@@ -397,9 +397,9 @@ test.describe("Create Product Page - UI Tests", () => {
       buffer: tinyPngPayload(),
     });
 
-    await page.getByRole("button", { name: /create product/i }).click();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
 
-    await expect(page.getByText(/product created successfully/i)).toBeVisible({
+    await expect(page.getByText("Product created successfully")).toBeVisible({
       timeout: 15000,
     });
     await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
@@ -412,15 +412,15 @@ test.describe("Create Product Page - UI Tests", () => {
     await page.goto("/dashboard/admin/create-product");
 
     const name = `E2E Monitor ${Date.now()}`;
-    await page.getByPlaceholder(/write a name/i).fill(name);
-    await page.getByPlaceholder(/write a description/i).fill("4K Monitor");
-    await page.getByPlaceholder(/write a price/i).fill("399");
-    await page.getByPlaceholder(/write a quantity/i).fill("15");
+    await page.getByPlaceholder("write a name").fill(name);
+    await page.getByPlaceholder("write a description").fill("4K Monitor");
+    await page.getByPlaceholder("write a price").fill("399");
+    await page.getByPlaceholder("write a quantity").fill("15");
 
-    await page.getByText(/select a category/i).click();
+    await page.getByText("select a category").click();
     await page.getByText(new RegExp(`^${catName}$`, "i")).click();
 
-    await page.getByText(/select shipping/i).click();
+    await page.getByText("select shipping").click();
     await page.getByText(/^yes$/i).click();
 
     await page.setInputFiles('input[type="file"][name="photo"]', {
@@ -429,9 +429,9 @@ test.describe("Create Product Page - UI Tests", () => {
       buffer: tinyPngPayload(),
     });
 
-    await page.getByRole("button", { name: /create product/i }).click();
+    await page.getByRole("button", { name: "CREATE PRODUCT" }).click();
 
-    await expect(page.getByText(/product created successfully/i)).toBeVisible({
+    await expect(page.getByText("Product created successfully")).toBeVisible({
       timeout: 15000,
     });
     await expect(page).toHaveURL(/\/dashboard\/admin\/products$/i);
@@ -444,8 +444,8 @@ test.describe("Create Product Page - UI Tests", () => {
 
     // Look for Create Product link/button
     const createLink = page
-      .getByRole("link", { name: /create product/i })
-      .or(page.getByRole("button", { name: /create product/i }));
+      .getByRole("link", { name: "CREATE PRODUCT" })
+      .or(page.getByRole("button", { name: "CREATE PRODUCT" }));
 
     const exists = await createLink.isVisible().catch(() => false);
     if (!exists) {
@@ -457,14 +457,14 @@ test.describe("Create Product Page - UI Tests", () => {
 
     await expect(page).toHaveURL(/\/dashboard\/admin\/create-product/i);
     await expect(
-      page.getByRole("heading", { name: /create product/i }),
+      page.getByRole("heading", { name: "CREATE PRODUCT" })
     ).toBeVisible();
   });
 
   test("quantity field accepts only numeric values", async ({ page }) => {
     await page.goto("/dashboard/admin/create-product");
 
-    const qtyField = page.getByPlaceholder(/write a quantity/i);
+    const qtyField = page.getByPlaceholder("write a quantity");
     await qtyField.fill("abc");
 
     // Field should either reject non-numeric or show validation error
@@ -475,7 +475,7 @@ test.describe("Create Product Page - UI Tests", () => {
   test("price field accepts numeric values with decimals", async ({ page }) => {
     await page.goto("/dashboard/admin/create-product");
 
-    const priceField = page.getByPlaceholder(/write a price/i);
+    const priceField = page.getByPlaceholder("write a price");
     await priceField.fill("99.99");
 
     const value = await priceField.inputValue();
