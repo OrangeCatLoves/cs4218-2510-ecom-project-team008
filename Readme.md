@@ -1,6 +1,7 @@
 # CS4218 Project - Virtual Vault
 
 ## Workflow URL
+
 https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581255
 
 ## Project Contributions
@@ -78,6 +79,8 @@ https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581
 
 ### Chua Yuan Cheng (A0258734U)
 
+## Unit Tests
+
 **Client Files**
 
 - components/Form/CategoryForm.js
@@ -101,6 +104,30 @@ https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581
   - updateProductController
   - deleteProductController
 - models/userModel.js
+
+## Integration Tests
+
+- CategoryForm.integration.test.js
+- CreateCategory.integration.test.js
+- CreateProduct.integration.test.js
+- UpdateProduct.integration.test.js
+- AdminOrders.integration.test.js
+- Products.integration.test.js
+- Private.integration.test.js
+- UserMenu.integration.test.js
+- Dashboard.integration.test.js
+- categoryController.integration.test.js
+- productController.integration.test.js
+- userModel.integration.test.js
+
+## UI Tests
+
+- auth.spec.js
+- categories.spec.js
+- create-product.spec.js
+- private-route.spec.js
+- products.spec.js
+- update-product.spec.js
 
 ### Koong Ee Fang Jonathan (A0317127J)
 
