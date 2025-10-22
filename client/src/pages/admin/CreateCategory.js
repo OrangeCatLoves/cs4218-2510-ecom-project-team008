@@ -20,17 +20,22 @@ const CreateCategory = () => {
     }
     try {
       const { data } = await axios.post("/api/v1/category/create-category", {
-        name,
+        name: name.trim(),
       });
       if (data?.success) {
         toast.success(`${name} is created`);
+        setName(""); // clear form after successful creation
         getAllCategory();
       } else {
-        toast.error(data.message);
+        // show specific backend error message
+        toast.error(data.message || "Failed to create category");
       }
     } catch (error) {
       console.log(error);
-      toast.error("Something went wrong in input form");
+      // show specific backend error if available
+      const errorMessage =
+        error.response?.data?.message || "Something went wrong in input form";
+      toast.error(errorMessage);
     }
   };
 
@@ -61,7 +66,7 @@ const CreateCategory = () => {
     try {
       const { data } = await axios.put(
         `/api/v1/category/update-category/${selected._id}`,
-        { name: updatedName }
+        { name: updatedName.trim() }
       );
       if (data.success) {
         toast.success(`${updatedName} is updated`);

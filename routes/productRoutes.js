@@ -47,7 +47,13 @@ router.get("/get-product/:slug", getSingleProductController);
 router.get("/product-photo/:pid", productPhotoController);
 
 //delete rproduct
-router.delete("/delete-product/:pid", deleteProductController);
+//add authentication and admin authorization
+router.delete(
+  "/delete-product/:pid",
+  requireSignIn,
+  isAdmin,
+  deleteProductController
+);
 
 //filter product
 router.post("/product-filters", productFiltersController);

@@ -48,7 +48,7 @@ const Orders = () => {
                         <td>{i + 1}</td>
                         <td data-testid="order-status">{o?.status}</td>
                         <td data-testid="order-buyer">{o?.buyer?.name}</td>
-                        <td>{moment(o?.createAt).fromNow()}</td>
+                        <td>{moment(o?.createdAt).fromNow()}</td>
                         <td data-testid="order-payment-success">{o?.payment.success ? "Success" : "Failed"}</td>
                         <td data-testid="order-products-count">{o?.products?.length ? o?.products?.length : 0}</td>
                       </tr>

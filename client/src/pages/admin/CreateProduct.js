@@ -106,7 +106,10 @@ const CreateProduct = () => {
       }
     } catch (error) {
       console.log(error);
-      toast.error("Something went wrong creating product");
+      // show specific backend error if available
+      const errorMessage =
+        error.response?.data?.message || "Something went wrong creating product";
+      toast.error(errorMessage);
     }
   };
 

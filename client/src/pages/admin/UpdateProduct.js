@@ -27,16 +27,29 @@ const UpdateProduct = () => {
       const { data } = await axios.get(
         `/api/v1/product/get-product/${params.slug}`
       );
-      setName(data.product.name);
+
+      // add null check for product data
+      if (!data.product) {
+        toast.error("Product not found");
+        navigate("/dashboard/admin/products");
+        return;
+      }
+
+      setName(data.product.name || "");
       setId(data.product._id);
-      setDescription(data.product.description);
-      setPrice(data.product.price);
-      setQuantity(data.product.quantity);
+      setDescription(data.product.description || "");
+      setPrice(data.product.price || "");
+      setQuantity(data.product.quantity || "");
       setShipping(data.product.shipping);
-      setCategory(data.product.category._id);
+
+      // add null check for category
+      if (data.product.category) {
+        setCategory(data.product.category._id);
+      }
     } catch (error) {
       console.log(error);
       toast.error("Something went wrong in getting product");
+      navigate("/dashboard/admin/products");
     }
   };
   useEffect(() => {
@@ -60,7 +73,7 @@ const UpdateProduct = () => {
     getAllCategory();
   }, []);
 
-  // Cleanup photo preview URL to prevent memory leak
+  // cleanup photo preview URL to prevent memory leak
   useEffect(() => {
     if (photo) {
       const objectUrl = URL.createObjectURL(photo);
@@ -115,7 +128,10 @@ const UpdateProduct = () => {
       }
     } catch (error) {
       console.log(error);
-      toast.error("something went wrong");
+      // show specific backend error if available
+      const errorMessage =
+        error.response?.data?.message || "something went wrong";
+      toast.error(errorMessage);
     }
   };
 

@@ -87,14 +87,18 @@ const AdminOrders = () => {
                       </td>
                       <td>{o?.buyer?.name}</td>
                       <td>{moment(o?.createdAt).fromNow()}</td>
-                      <td>{o?.payment.success ? "Success" : "Failed"}</td>
+                      <td>{o?.payment?.success ? "Success" : "Failed"}</td>
                       <td>{o?.products?.length}</td>
                     </tr>
                   </tbody>
                 </table>
                 <div className="container">
                   {o?.products?.map((p, i) => (
-                    <div data-testid="product" className="row mb-2 p-3 card flex-row" key={p._id}>
+                    <div
+                      data-testid="product"
+                      className="row mb-2 p-3 card flex-row"
+                      key={p._id}
+                    >
                       <div className="col-md-4">
                         <img
                           src={`/api/v1/product/product-photo/${p._id}`}
@@ -106,8 +110,15 @@ const AdminOrders = () => {
                       </div>
                       <div className="col-md-8">
                         <p data-testid="product-name">{p.name}</p>
-                        <p data-testid="product-description">{p.description.substring(0, 30)}</p>
+                        <p data-testid="product-description">
+                          {p.description?.substring(0, 30) || "No description"}
+                        </p>
                         <p data-testid="product-price">Price : {p.price}</p>
+                        <p>{p.name}</p>
+                        <p>
+                          {p.description?.substring(0, 30) || "No description"}
+                        </p>
+                        <p>Price : {p.price}</p>
                       </div>
                     </div>
                   ))}
