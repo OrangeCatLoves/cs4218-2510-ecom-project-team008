@@ -71,6 +71,8 @@ https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581
 
 ### Mao Xiongkai (A0273007M)
 
+## Unit Tests
+
 **Client Files**
 
 - pages/user/Orders.js
@@ -89,6 +91,24 @@ https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581
   - orderStatusController
   - getAllUsersController **(Not in the original testing scope but since pages/admin/Users.js lacks implementation so I decide to finish the feature and test my own code as a show of effort)**
 - models/orderModel.js
+
+## Integration Tests
+
+- client/src/integration-tests/pages/admin/Users.integration.test.js
+- client/src/integration-tests/pages/user/Orders.integration.test.js
+- client/src/integration-tests/pages/user/Profile.integration.test.js
+- client/src/integration-tests/pages/Search.integration.test.js
+- integration-tests/order.integration.test.js
+- integration-tests/profile.integration.test.js
+- integration-tests/search.integration.test.js
+
+## UI Tests
+
+- admin-dashboard.spec.js (display all users and redirect non-authenticated user to login page only)
+- order.spec.js
+- profile.spec.js
+- search.spec.js
+
 
 ### Chua Yuan Cheng (A0258734U)
 
