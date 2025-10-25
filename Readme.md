@@ -69,6 +69,29 @@ https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581
 - models/productModel.js
 - config/db.js
 
+**Integration files**
+- integration-tests/productController.integration.test.js
+   - getProductController
+   - getSingleProductController
+   - productPhotoController
+   - productFiltersController
+   - productCountController
+   - productListController
+   - searchProductController
+   - realtedProductController
+   - productCategoryController
+
+- client/src/integration-tests/pages/ProductDetails.integration.test.js
+- client/src/integration-tests/pages/CategoryProduct.integration.test.js
+- client/src/integration-tests/pages/Contact.integration.test.js
+
+
+**Playwright test**
+- ui-tests/ProductDetails.spec.js
+- ui-tests/CategoryProduct.spec.js
+- ui-tests/Contact.spec.js
+- ui-tests/Policy.spec.js
+
 ### Mao Xiongkai (A0273007M)
 
 ## Unit Tests
