@@ -179,6 +179,21 @@ https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581
   - categoryControlller
   - singleCategoryController
 
+#### Integration Tests
+- braintree.integration.test.js
+- categoryController.integration.test.js
+- categoryModel.integration.test.js
+- CartProvider.integration.test.js
+- useCategory.integration.test.js
+- CartPage.integration.test.js
+- Categories.integration.test.js
+- HomePage.integration.test.js
+- CartSystem.integration.test.js
+
+#### UI Tests
+- cart.spec.js
+- homepage.spec.js
+
 ## 1. Project Introduction
 
 Virtual Vault is a full-stack MERN (MongoDB, Express.js, React.js, Node.js) e-commerce website, offering seamless connectivity and user-friendly features. The platform provides a robust framework for online shopping. The website is designed to adapt to evolving business needs and can be efficiently extended.
