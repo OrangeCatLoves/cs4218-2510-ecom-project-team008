@@ -89,8 +89,8 @@ https://github.com/cs4218/cs4218-2510-ecom-project-team008/actions/runs/18260581
 **Playwright test**
 - ui-tests/ProductDetails.spec.js
 - ui-tests/CategoryProduct.spec.js
-- ui-tests/Contact.spec.js
-- ui-tests/Policy.spec.js
+- ui-tests/contact.spec.js
+- ui-tests/policy.spec.js
 
 ### Mao Xiongkai (A0273007M)
 
